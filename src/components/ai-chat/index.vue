@@ -4,7 +4,7 @@
       <div ref="ContentRef" class="content-container">
         <div class="chat-list">
           <div data-type="chat-item" v-for="(item, index) in chatHistoryList" :key="index">
-            <div v-if="item[0].role === ROLE.USER" class="question-item-box">
+            <div v-if="item[0].role === Role.USER" class="question-item-box">
               <div class="question-item" :id="item[0].id">
                 {{ item[0].content }}
               </div>
@@ -46,7 +46,7 @@
       </div>
       <!--滚动按钮-->
       <div v-if="showToBottomBtn" @click="() => scrollToBottom(ContentRef)" class="scroll-to-bottom">
-        <div class="bottom-btn" v-html="ArrowSvg"></div>
+        <div class="bottom-btn" v-html="ArrowUpwardSvg"></div>
       </div>
       <!--输入-->
       <div class="input-container">
@@ -65,7 +65,7 @@
             <div class="right">
               <div
                 v-if="!loading"
-                v-html="ArrowSvg"
+                v-html="ArrowUpwardSvg"
                 class="operation-btn"
                 :class="{ disabled: !question }"
                 @click="handleChat"
@@ -82,20 +82,21 @@
 import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
 import { Marked, Renderer } from 'marked';
 import { createHighlighter, bundledLanguages } from 'shiki';
-import mockData from './mock.js';
-import ArrowSvg from '@/assets/arrow_upward.svg?raw';
-import PausedSvg from '@/assets/paused.svg?raw';
+import { HighlighterConfig, Role } from './config.js';
 import { scrollToBottom, getUniqueid, formatTime } from './utils.js';
+import { message } from 'ant-design-vue';
 
-const ROLE = {
-  // 用户
-  USER: 'user',
-  // AI助手
-  ASSISTANT: 'assistant',
-};
+import CopySvg from '@/assets/copy.svg?raw';
+import ArrowSvg from '@/assets/arrow.svg?raw';
+import BedtimeSvg from '@/assets/bedtime.svg?raw';
+import LightSvg from '@/assets/light_mode.svg?raw';
+
+import mockData from './mock.js';
+
+import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
+import PausedSvg from '@/assets/paused.svg?raw';
 
 const question = ref('');
-const responseMarkdownText = shallowRef('');
 const abortController = shallowRef(null);
 const highlighter = shallowRef();
 const loading = ref(false);
@@ -111,7 +112,7 @@ const MarkdownRef = ref(null);
 const ContentRef = ref(null);
 
 // 聊天记录（二维数组，一条记录为一个对话）
-const chatHistoryList = ref(mockData || []);
+const chatHistoryList = ref([]);
 
 const showToBottomBtn = ref(false);
 
@@ -122,12 +123,22 @@ const render = new Renderer();
 render.code = ({ text, lang, escaped }) => {
   const html = highlighter.value.codeToHtml(text, {
     lang,
-    themes: {
-      light: 'min-light',
-      dark: 'nord',
-    },
+    theme: HighlighterConfig.theme.light,
   });
-  return `<div data-custom-code>${html}</div>`;
+
+  const languageLabel = lang || 'text';
+  return `<div class="custom-code-block" data-lang="${languageLabel}">
+      <div class="code-header">
+        <span class="lang-label">${languageLabel}</span>
+        <div class="tool-btn-container">
+          <div class="item copy" data-copy title="复制">${CopySvg}</div>
+          <div class="item theme" data-lang="${languageLabel}" data-theme="light" title="切换主题">${BedtimeSvg}</div>
+          <div class="item collapse" data-collapse="down" title="收起">${ArrowSvg}</div>
+        </div>
+      </div>
+      <div class="code-content">${html}</div>
+      <div class="code-footer">已隐藏1行代码</div>
+    </div>`;
 };
 
 const renderHtml = computed(() => {
@@ -135,10 +146,6 @@ const renderHtml = computed(() => {
   if (!responseMarkdownText) return '';
   return marked.parse(responseMarkdownText);
 });
-
-function postprocess(html) {
-  return html;
-}
 
 function processLine(line) {
   const trimmed = line.trim();
@@ -172,9 +179,9 @@ function updateHistoryChatList(params = {}) {
     markdown,
     createTime: formatTime(Date.now()),
   };
-  if (role === ROLE.USER) {
+  if (role === Role.USER) {
     chatHistoryList.value.push([item]);
-  } else if (role === ROLE.ASSISTANT) {
+  } else if (role === Role.ASSISTANT) {
     const renderHTML = MarkdownRef.value[MarkdownRef.value.length - 1].innerHTML || '';
     const lastIndex = chatHistoryList.value.length - 1;
     if (lastIndex >= 0) {
@@ -191,36 +198,46 @@ function getBodyParams(content) {
     stream: true,
     messages: [
       {
-        role: ROLE.USER,
+        role: Role.USER,
         content: content,
       },
     ],
   });
 }
 
-function resetCurrentRender() {
+function updateCurrentRender(params = {}) {
+  const { currentIndex = 0, modelCode = '', createTime = '', responseMarkdownText = '' } = params || {};
   currentRender.value = {
-    currentIndex: 0,
-    modelCode: '',
-    createTime: '',
-    responseMarkdownText: '',
+    currentIndex,
+    modelCode,
+    createTime,
+    responseMarkdownText,
   };
+}
+
+async function beforeRequestChat() {
+  updateHistoryChatList({ role: Role.USER, content: question.value });
+  const bodyParams = getBodyParams(question.value);
+  abortController.value = new AbortController();
+  question.value = '';
+
+  updateCurrentRender({
+    currentIndex: Math.max(chatHistoryList.value.length - 1, 0),
+    modelCode: 'Qwen3-Max',
+    createTime: formatTime(Date.now()),
+    responseMarkdownText: '',
+  });
+
+  await nextTick();
+  scrollToBottom(ContentRef.value, false);
+  return bodyParams;
 }
 
 async function handleChat() {
   if (!question.value.trim() || loading.value) return;
   loading.value = true;
 
-  updateHistoryChatList({ role: ROLE.USER, content: question.value });
-  const bodyParams = getBodyParams(question.value);
-  abortController.value = new AbortController();
-  question.value = '';
-  currentRender.value.currentIndex = Math.max(chatHistoryList.value.length - 1, 0);
-  currentRender.value.createTime = formatTime(Date.now());
-  currentRender.value.modelCode = 'Qwen3-Max-update';
-
-  await nextTick();
-  scrollToBottom(ContentRef.value, false);
+  const bodyParams = await beforeRequestChat();
 
   try {
     const res = await fetch('/ai/api/v2/chat/completions', {
@@ -234,7 +251,8 @@ async function handleChat() {
     });
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      currentRender.value.responseMarkdownText += '\n\n 系统异常。';
+      return;
     }
 
     const reader = res.body.getReader();
@@ -257,12 +275,13 @@ async function handleChat() {
     console.error('Fetch error:', err);
   } finally {
     updateHistoryChatList({
-      role: ROLE.ASSISTANT,
+      role: Role.ASSISTANT,
       markdown: currentRender.value.responseMarkdownText,
     });
     loading.value = false;
     abortController.value = null;
-    resetCurrentRender();
+    updateCurrentRender({});
+    console.log('add', JSON.stringify(chatHistoryList.value));
   }
 }
 
@@ -281,31 +300,103 @@ function handleScroll(e) {
   showToBottomBtn.value = scrollHeight - (scrollTop + clientHeight) > 0;
 }
 
+function handleToggleCodeTheme(target, codeBlock) {
+  const theme = target.dataset.theme;
+  const lang = target.dataset.lang;
+  target.dataset.theme = theme === 'light' ? 'dark' : 'light';
+  target.innerHTML = theme === 'light' ? LightSvg : BedtimeSvg;
+  const html = highlighter.value.codeToHtml(codeBlock.querySelector('code').innerText, {
+    lang,
+    theme: theme === 'light' ? HighlighterConfig.theme.dark : HighlighterConfig.theme.light,
+  });
+  codeBlock.classList.toggle('dark');
+  codeBlock.querySelector('.code-content').innerHTML = html;
+}
+
+function handleCopyCode(codeBlock) {
+  const codeContent = codeBlock.querySelector('pre code')?.innerText || '';
+  navigator.clipboard
+    .writeText(codeContent)
+    .then(() => {
+      message.success('复制成功');
+    })
+    .catch(err => {
+      message.error('复制失败');
+    });
+}
+
+function handleExpandCode(target, codeBlock) {
+  const collapse = target.dataset.collapse;
+  const codeContent = codeBlock.querySelector('.code-content');
+  const codeFooter = codeBlock.querySelector('.code-footer');
+  const codeLines = codeBlock.querySelectorAll('code span.line').length;
+  const isDown = collapse === 'down';
+
+  codeContent.style.display = isDown ? 'none' : 'block';
+  codeFooter.style.display = isDown ? 'flex' : 'none';
+  codeFooter.innerText = `已隐藏${codeLines}行代码`;
+  target.dataset.collapse = isDown ? 'up' : 'down';
+  target.classList.toggle('up');
+}
+
+function findParentElement(target, selector) {
+  while (target && target !== document.body) {
+    if (target.matches(selector)) {
+      return target;
+    }
+    target = target.parentElement;
+  }
+  return null;
+}
+
+function handleCustomCodeEvent(e) {
+  const target = findParentElement(e.target, '[data-copy], [data-theme], [data-collapse]');
+  const codeBlock = e.target.closest('.custom-code-block');
+  if (target.matches('[data-copy]')) {
+    handleCopyCode(codeBlock);
+  } else if (target.matches('[data-theme]')) {
+    handleToggleCodeTheme(target, codeBlock);
+  } else if (target.matches('[data-collapse]')) {
+    handleExpandCode(target, codeBlock);
+  }
+}
+
+function listenCustomCodeEvent() {
+  ContentRef.value.addEventListener('click', handleCustomCodeEvent);
+}
+
 function bindEvent() {
   if (!ContentRef.value) return;
   ContentRef.value.addEventListener('scroll', handleScroll);
+  listenCustomCodeEvent();
 }
 
 async function init() {
   await nextTick();
   scrollToBottom(ContentRef.value, false);
   bindEvent();
-  marked.use({ hooks: { postprocess }, renderer: render });
+  marked.use({ renderer: render });
   highlighter.value = await createHighlighter({
-    langs: ['javascript', 'typescript', 'vue', 'json', 'css', 'html', 'bash', 'python', 'yaml'],
-    themes: ['min-light', 'nord'],
+    langs: HighlighterConfig.langs,
+    themes: HighlighterConfig.themes,
   });
+
+  setTimeout(() => {
+    chatHistoryList.value = [...mockData];
+    currentRender.value.responseMarkdownText = mockData[0][1].markdown;
+  }, 500);
 }
 
 onMounted(() => init());
 
 onBeforeUnmount(() => {
   ContentRef.value.removeEventListener('scroll', handleScroll);
+  ContentRef.value.removeEventListener('click', handleCustomCodeEvent);
 });
 </script>
 
 <style lang="scss">
-@import './markdown.css';
+@use './markdown.scss';
 
 .ai-chat {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
