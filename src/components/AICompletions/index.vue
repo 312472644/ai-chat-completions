@@ -49,7 +49,8 @@
         <div class="bottom-btn" v-html="ArrowUpwardSvg"></div>
       </div>
       <!--输入-->
-      <div class="input-container">
+      <InputChat :loading="loading" @start="handleChat" @stop="handleStop" />
+      <!-- <div class="input-container">
         <div class="input-box">
           <div class="chat-textarea scrollbar">
             <textarea
@@ -74,7 +75,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -83,24 +84,24 @@ import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUn
 import { Marked, Renderer } from 'marked';
 import { createHighlighter, bundledLanguages } from 'shiki';
 import { HighlighterConfig, Role } from './config.js';
-import { scrollToBottom, getUniqueid, formatTime } from './utils.js';
+import { scrollToBottom, getUniqueid, formatTime, findParentElement } from './utils.js';
 import { message } from 'ant-design-vue';
+import InputChat from './InputChat.vue';
 
 import CopySvg from '@/assets/copy.svg?raw';
 import ArrowSvg from '@/assets/arrow.svg?raw';
 import BedtimeSvg from '@/assets/bedtime.svg?raw';
 import LightSvg from '@/assets/light_mode.svg?raw';
 
-import mockData from './mock.js';
+import mockData from './mock-data.js';
 
 import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
 import PausedSvg from '@/assets/paused.svg?raw';
 
-const question = ref('');
-const abortController = shallowRef(null);
 const highlighter = shallowRef();
 const loading = ref(false);
-
+// 是否请求被终止
+const isRequestAborted = ref(false);
 const currentRender = ref({
   currentIndex: 0,
   modelCode: '',
@@ -113,7 +114,6 @@ const ContentRef = ref(null);
 
 // 聊天记录（二维数组，一条记录为一个对话）
 const chatHistoryList = ref([]);
-
 const showToBottomBtn = ref(false);
 
 const marked = new Marked();
@@ -187,22 +187,11 @@ function updateHistoryChatList(params = {}) {
     if (lastIndex >= 0) {
       chatHistoryList.value[lastIndex].push({
         ...item,
-        content: renderHTML,
+        isAborted: isRequestAborted.value,
+        content: renderHTML.concat(isRequestAborted.value ? '\n\n 已停止响应。' : ''),
       });
     }
   }
-}
-
-function getBodyParams(content) {
-  return JSON.stringify({
-    stream: true,
-    messages: [
-      {
-        role: Role.USER,
-        content: content,
-      },
-    ],
-  });
 }
 
 function updateCurrentRender(params = {}) {
@@ -215,29 +204,22 @@ function updateCurrentRender(params = {}) {
   };
 }
 
-async function beforeRequestChat() {
-  updateHistoryChatList({ role: Role.USER, content: question.value });
-  const bodyParams = getBodyParams(question.value);
-  abortController.value = new AbortController();
-  question.value = '';
-
+async function beforeRequestChat(question) {
+  updateHistoryChatList({ role: Role.USER, content: question });
   updateCurrentRender({
     currentIndex: Math.max(chatHistoryList.value.length - 1, 0),
     modelCode: 'Qwen3-Max',
     createTime: formatTime(Date.now()),
     responseMarkdownText: '',
   });
-
+  isRequestAborted.value = false;
   await nextTick();
   scrollToBottom(ContentRef.value, false);
-  return bodyParams;
 }
 
-async function handleChat() {
-  if (!question.value.trim() || loading.value) return;
+async function handleChat({ question, abortController }) {
   loading.value = true;
-
-  const bodyParams = await beforeRequestChat();
+  beforeRequestChat(question);
 
   try {
     const res = await fetch('/ai/api/v2/chat/completions', {
@@ -246,8 +228,16 @@ async function handleChat() {
         'Content-Type': 'application/json',
         Authorization: 'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
       },
-      body: bodyParams,
-      signal: abortController.value.signal,
+      body: JSON.stringify({
+        stream: true,
+        messages: [
+          {
+            role: Role.USER,
+            content: question,
+          },
+        ],
+      }),
+      signal: abortController.signal,
     });
 
     if (!res.ok) {
@@ -259,8 +249,13 @@ async function handleChat() {
     const decoder = new TextDecoder('utf-8');
 
     while (true) {
+      if (isRequestAborted.value) {
+        currentRender.value.responseMarkdownText += '\n\n 已停止响应。';
+        break;
+      }
       const { done, value } = await reader.read();
       if (done) break;
+
       const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split('\n');
       for (const line of lines) {
@@ -272,25 +267,19 @@ async function handleChat() {
       currentRender.value.responseMarkdownText += '\n\n 已停止响应。';
       return;
     }
-    console.error('Fetch error:', err);
   } finally {
     updateHistoryChatList({
       role: Role.ASSISTANT,
       markdown: currentRender.value.responseMarkdownText,
     });
     loading.value = false;
-    abortController.value = null;
     updateCurrentRender({});
-    console.log('add', JSON.stringify(chatHistoryList.value));
+    // console.log('add', JSON.stringify(chatHistoryList.value));
   }
 }
 
 function handleStop() {
-  if (!abortController.value) {
-    return;
-  }
-  question.value = '';
-  abortController.value.abort();
+  isRequestAborted.value = true;
   loading.value = false;
 }
 
@@ -339,18 +328,9 @@ function handleExpandCode(target, codeBlock) {
   target.classList.toggle('up');
 }
 
-function findParentElement(target, selector) {
-  while (target && target !== document.body) {
-    if (target.matches(selector)) {
-      return target;
-    }
-    target = target.parentElement;
-  }
-  return null;
-}
-
 function handleCustomCodeEvent(e) {
   const target = findParentElement(e.target, '[data-copy], [data-theme], [data-collapse]');
+  if (!target) return;
   const codeBlock = e.target.closest('.custom-code-block');
   if (target.matches('[data-copy]')) {
     handleCopyCode(codeBlock);
@@ -381,10 +361,10 @@ async function init() {
     themes: HighlighterConfig.themes,
   });
 
-  setTimeout(() => {
-    chatHistoryList.value = [...mockData];
-    currentRender.value.responseMarkdownText = mockData[0][1].markdown;
-  }, 500);
+  // setTimeout(() => {
+  //   chatHistoryList.value = [...mockData];
+  //   currentRender.value.responseMarkdownText = mockData[0][1].markdown;
+  // }, 500);
 }
 
 onMounted(() => init());
@@ -476,69 +456,69 @@ onBeforeUnmount(() => {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
   }
-  .input-container {
-    border: 1px solid #dcdee2;
-    border-radius: 10px;
-    padding: 0 12px;
-    margin: 12px 0;
+  // .input-container {
+  //   border: 1px solid #dcdee2;
+  //   border-radius: 10px;
+  //   padding: 0 12px;
+  //   margin: 12px 0;
 
-    .input-box {
-      color: #515a6e;
-      display: flex;
-      flex-direction: column;
-      .chat-textarea {
-        flex: 1;
-        padding-top: 10px;
-        .textarea {
-          font-size: 15px;
-          width: 100%;
-          border: none;
-          outline: none;
-          resize: none;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-      }
-      .function-area {
-        height: 56px;
-        display: flex;
-        justify-content: space-between;
-        .right {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          .operation-btn {
-            background-color: #2b85e4;
-            border-radius: 50%;
-            color: #fff;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            &:hover {
-              background-color: #1976d2;
-            }
-            &.disabled {
-              cursor: not-allowed;
-              background-color: #90caf9;
-            }
-            &-stop {
-              cursor: pointer;
-              width: 32px;
-              height: 32px;
-              color: #17233d;
-              img {
-                width: 100%;
-                height: 100%;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  //   .input-box {
+  //     color: #515a6e;
+  //     display: flex;
+  //     flex-direction: column;
+  //     .chat-textarea {
+  //       flex: 1;
+  //       padding-top: 10px;
+  //       .textarea {
+  //         font-size: 15px;
+  //         width: 100%;
+  //         border: none;
+  //         outline: none;
+  //         resize: none;
+  //         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  //       }
+  //     }
+  //     .function-area {
+  //       height: 56px;
+  //       display: flex;
+  //       justify-content: space-between;
+  //       .right {
+  //         margin-left: auto;
+  //         display: flex;
+  //         align-items: center;
+  //         gap: 8px;
+  //         .operation-btn {
+  //           background-color: #2b85e4;
+  //           border-radius: 50%;
+  //           color: #fff;
+  //           width: 32px;
+  //           height: 32px;
+  //           display: flex;
+  //           align-items: center;
+  //           justify-content: center;
+  //           cursor: pointer;
+  //           &:hover {
+  //             background-color: #1976d2;
+  //           }
+  //           &.disabled {
+  //             cursor: not-allowed;
+  //             background-color: #90caf9;
+  //           }
+  //           &-stop {
+  //             cursor: pointer;
+  //             width: 32px;
+  //             height: 32px;
+  //             color: #17233d;
+  //             img {
+  //               width: 100%;
+  //               height: 100%;
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   ::-webkit-scrollbar {
     width: 6px;

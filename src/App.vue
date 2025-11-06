@@ -1,9 +1,9 @@
 <template>
-  <AIChat />
+  <AICompletions></AICompletions>
 </template>
 
 <script setup>
-import AIChat from './components/ai-chat/index.vue';
+import AICompletions from './components/AICompletions/index.vue';
 </script>
 
 <style scoped></style>
