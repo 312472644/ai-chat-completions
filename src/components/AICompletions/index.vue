@@ -81,24 +81,17 @@
 </template>
 <script setup>
 import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
-import { Marked, Renderer } from 'marked';
-import { createHighlighter, bundledLanguages } from 'shiki';
-import { HighlighterConfig, Role } from './config.js';
-import { scrollToBottom, getUniqueid, formatTime, findParentElement } from './utils.js';
+import { HighlighterConfig, Role } from './scripts/config.js';
+import { scrollToBottom, getUniqueid, formatTime, findParentElement } from './scripts/utils.js';
 import { message } from 'ant-design-vue';
 import InputChat from './InputChat.vue';
-
-import CopySvg from '@/assets/copy.svg?raw';
-import ArrowSvg from '@/assets/arrow.svg?raw';
-import BedtimeSvg from '@/assets/bedtime.svg?raw';
-import LightSvg from '@/assets/light_mode.svg?raw';
+import useMarked from './scripts/useMarked.js';
 
 import mockData from './mock-data.js';
 
 import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
 import PausedSvg from '@/assets/paused.svg?raw';
 
-const highlighter = shallowRef();
 const loading = ref(false);
 // 是否请求被终止
 const isRequestAborted = ref(false);
@@ -116,35 +109,12 @@ const ContentRef = ref(null);
 const chatHistoryList = ref([]);
 const showToBottomBtn = ref(false);
 
-const marked = new Marked();
-const render = new Renderer();
-
-// 自定义代码块渲染
-render.code = ({ text, lang, escaped }) => {
-  const html = highlighter.value.codeToHtml(text, {
-    lang,
-    theme: HighlighterConfig.theme.light,
-  });
-
-  const languageLabel = lang || 'text';
-  return `<div class="custom-code-block" data-lang="${languageLabel}">
-      <div class="code-header">
-        <span class="lang-label">${languageLabel}</span>
-        <div class="tool-btn-container">
-          <div class="item copy" data-copy title="复制">${CopySvg}</div>
-          <div class="item theme" data-lang="${languageLabel}" data-theme="light" title="切换主题">${BedtimeSvg}</div>
-          <div class="item collapse" data-collapse="down" title="收起">${ArrowSvg}</div>
-        </div>
-      </div>
-      <div class="code-content">${html}</div>
-      <div class="code-footer">已隐藏1行代码</div>
-    </div>`;
-};
+const { parseMarkdown, initMarked, codeEventListener } = useMarked();
 
 const renderHtml = computed(() => {
   const responseMarkdownText = currentRender.value.responseMarkdownText;
   if (!responseMarkdownText) return '';
-  return marked.parse(responseMarkdownText);
+  return parseMarkdown(responseMarkdownText);
 });
 
 function processLine(line) {
@@ -289,89 +259,26 @@ function handleScroll(e) {
   showToBottomBtn.value = scrollHeight - (scrollTop + clientHeight) > 0;
 }
 
-function handleToggleCodeTheme(target, codeBlock) {
-  const theme = target.dataset.theme;
-  const lang = target.dataset.lang;
-  target.dataset.theme = theme === 'light' ? 'dark' : 'light';
-  target.innerHTML = theme === 'light' ? LightSvg : BedtimeSvg;
-  const html = highlighter.value.codeToHtml(codeBlock.querySelector('code').innerText, {
-    lang,
-    theme: theme === 'light' ? HighlighterConfig.theme.dark : HighlighterConfig.theme.light,
-  });
-  codeBlock.classList.toggle('dark');
-  codeBlock.querySelector('.code-content').innerHTML = html;
-}
-
-function handleCopyCode(codeBlock) {
-  const codeContent = codeBlock.querySelector('pre code')?.innerText || '';
-  navigator.clipboard
-    .writeText(codeContent)
-    .then(() => {
-      message.success('复制成功');
-    })
-    .catch(err => {
-      message.error('复制失败');
-    });
-}
-
-function handleExpandCode(target, codeBlock) {
-  const collapse = target.dataset.collapse;
-  const codeContent = codeBlock.querySelector('.code-content');
-  const codeFooter = codeBlock.querySelector('.code-footer');
-  const codeLines = codeBlock.querySelectorAll('code span.line').length;
-  const isDown = collapse === 'down';
-
-  codeContent.style.display = isDown ? 'none' : 'block';
-  codeFooter.style.display = isDown ? 'flex' : 'none';
-  codeFooter.innerText = `已隐藏${codeLines}行代码`;
-  target.dataset.collapse = isDown ? 'up' : 'down';
-  target.classList.toggle('up');
-}
-
-function handleCustomCodeEvent(e) {
-  const target = findParentElement(e.target, '[data-copy], [data-theme], [data-collapse]');
-  if (!target) return;
-  const codeBlock = e.target.closest('.custom-code-block');
-  if (target.matches('[data-copy]')) {
-    handleCopyCode(codeBlock);
-  } else if (target.matches('[data-theme]')) {
-    handleToggleCodeTheme(target, codeBlock);
-  } else if (target.matches('[data-collapse]')) {
-    handleExpandCode(target, codeBlock);
-  }
-}
-
-function listenCustomCodeEvent() {
-  ContentRef.value.addEventListener('click', handleCustomCodeEvent);
-}
-
 function bindEvent() {
   if (!ContentRef.value) return;
   ContentRef.value.addEventListener('scroll', handleScroll);
-  listenCustomCodeEvent();
 }
 
 async function init() {
   await nextTick();
   scrollToBottom(ContentRef.value, false);
   bindEvent();
-  marked.use({ renderer: render });
-  highlighter.value = await createHighlighter({
-    langs: HighlighterConfig.langs,
-    themes: HighlighterConfig.themes,
-  });
-
-  // setTimeout(() => {
-  //   chatHistoryList.value = [...mockData];
-  //   currentRender.value.responseMarkdownText = mockData[0][1].markdown;
-  // }, 500);
+  await initMarked(ContentRef.value);
+  setTimeout(() => {
+    chatHistoryList.value = [...mockData];
+    currentRender.value.responseMarkdownText = mockData[0][1].markdown;
+  }, 500);
 }
 
 onMounted(() => init());
 
 onBeforeUnmount(() => {
   ContentRef.value.removeEventListener('scroll', handleScroll);
-  ContentRef.value.removeEventListener('click', handleCustomCodeEvent);
 });
 </script>
 
@@ -454,85 +361,6 @@ onBeforeUnmount(() => {
       cursor: pointer;
       border: 1px solid #e8eaec;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-  }
-  // .input-container {
-  //   border: 1px solid #dcdee2;
-  //   border-radius: 10px;
-  //   padding: 0 12px;
-  //   margin: 12px 0;
-
-  //   .input-box {
-  //     color: #515a6e;
-  //     display: flex;
-  //     flex-direction: column;
-  //     .chat-textarea {
-  //       flex: 1;
-  //       padding-top: 10px;
-  //       .textarea {
-  //         font-size: 15px;
-  //         width: 100%;
-  //         border: none;
-  //         outline: none;
-  //         resize: none;
-  //         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  //       }
-  //     }
-  //     .function-area {
-  //       height: 56px;
-  //       display: flex;
-  //       justify-content: space-between;
-  //       .right {
-  //         margin-left: auto;
-  //         display: flex;
-  //         align-items: center;
-  //         gap: 8px;
-  //         .operation-btn {
-  //           background-color: #2b85e4;
-  //           border-radius: 50%;
-  //           color: #fff;
-  //           width: 32px;
-  //           height: 32px;
-  //           display: flex;
-  //           align-items: center;
-  //           justify-content: center;
-  //           cursor: pointer;
-  //           &:hover {
-  //             background-color: #1976d2;
-  //           }
-  //           &.disabled {
-  //             cursor: not-allowed;
-  //             background-color: #90caf9;
-  //           }
-  //           &-stop {
-  //             cursor: pointer;
-  //             width: 32px;
-  //             height: 32px;
-  //             color: #17233d;
-  //             img {
-  //               width: 100%;
-  //               height: 100%;
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: transparent;
-    border-radius: 3px;
-  }
-  &:hover {
-    ::-webkit-scrollbar-thumb {
-      background-color: #e7e7ea;
     }
   }
 

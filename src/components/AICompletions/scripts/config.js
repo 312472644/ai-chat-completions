@@ -17,6 +17,7 @@ export const HighlighterConfig = {
     light: 'vitesse-light',
     dark: 'andromeeda',
   },
+  themes: [],
 };
 
 Object.defineProperty(HighlighterConfig, 'themes', {
