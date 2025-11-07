@@ -3,36 +3,36 @@
     <div class="chat-wrapper">
       <div ref="ContentRef" class="content-container">
         <div class="chat-list">
-          <div data-type="chat-item" v-for="(item, index) in chatHistoryList" :key="index">
-            <div v-if="item[0].role === Role.USER" class="question-item-box">
-              <div class="question-item" :id="item[0].id">
-                {{ item[0].content }}
+          <div data-type="chat-item" v-for="(item, index) in chatMessage.messages" :key="index" :id="item.id">
+            <div v-if="item[Role.USER]" class="question-item-box" :id="item[Role.USER].id">
+              <div class="question-item">
+                {{ item[Role.USER].content }}
               </div>
             </div>
             <!--已经完成的对话-->
-            <div v-if="item?.[1]?.content" class="answer-item-box" :id="item?.[1]?.id">
+            <div v-if="item[Role.ASSISTANT]?.content" class="answer-item-box" :id="item[Role.ASSISTANT].id">
               <div class="answer-meta">
-                <div class="model-code">{{ item?.[1]?.modelCode }}</div>
+                <div class="model-code">{{ item[Role.ASSISTANT].modelCode || 'Qwen3-Max' }}</div>
                 <div class="create-time">
-                  {{ item?.[1]?.createTime }}
+                  {{ item[Role.ASSISTANT].createTime }}
                 </div>
               </div>
               <div class="answer-content">
                 <!--历史记录-->
-                <div class="markdown-output" v-html="item?.[1]?.content"></div>
+                <div class="markdown-output" v-html="item[Role.ASSISTANT].content"></div>
               </div>
               <div class="answer-tool"></div>
             </div>
             <!--正在输出的对话-->
-            <div v-else class="answer-item-box" :id="item?.[1]?.id">
-              <div v-if="currentRender.currentIndex === index" class="answer-meta">
-                <div class="model-code">{{ currentRender.modelCode }}</div>
+            <div v-else class="answer-item-box" :id="item?.[Role.ASSISTANT]?.id">
+              <div v-if="index === chatMessage.messages.length - 1" class="answer-meta">
+                <div class="model-code">{{ chatMessage.currentMessage.modelCode || 'Qwen3-Max' }}</div>
                 <div class="create-time">
-                  {{ currentRender.createTime }}
+                  {{ chatMessage.currentMessage.createTime }}
                 </div>
               </div>
               <!--加载动画-->
-              <div v-if="currentRender.currentIndex === index && loading && !renderHtml" class="cursor"></div>
+              <div v-if="index === chatMessage.messages.length - 1 && loading && !renderHtml" class="cursor"></div>
               <div class="answer-content">
                 <!--正在渲染-->
                 <div ref="MarkdownRef" class="markdown-output" v-html="renderHtml"></div>
@@ -50,44 +50,21 @@
       </div>
       <!--输入-->
       <InputChat :loading="loading" @start="handleChat" @stop="handleStop" />
-      <!-- <div class="input-container">
-        <div class="input-box">
-          <div class="chat-textarea scrollbar">
-            <textarea
-              class="textarea"
-              v-model="question"
-              :rows="4"
-              @keydown.enter.exact.prevent="handleChat"
-              placeholder="请输入内容"
-            ></textarea>
-          </div>
-          <div class="function-area">
-            <div class="left"></div>
-            <div class="right">
-              <div
-                v-if="!loading"
-                v-html="ArrowUpwardSvg"
-                class="operation-btn"
-                :class="{ disabled: !question }"
-                @click="handleChat"
-              ></div>
-              <div v-else v-html="PausedSvg" class="operation-btn-stop" @click="handleStop"></div>
-            </div>
-          </div>
-        </div>
-      </div> -->
     </div>
   </div>
 </template>
 <script setup>
 import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
-import { HighlighterConfig, Role } from './scripts/config.js';
-import { scrollToBottom, getUniqueid, formatTime, findParentElement } from './scripts/utils.js';
+import { Role } from './scripts/config.js';
+import { scrollToBottom, getUniqueid, formatTime } from './scripts/utils.js';
 import { message } from 'ant-design-vue';
-import InputChat from './InputChat.vue';
-import useMarked from './scripts/useMarked.js';
 
+import useMarked from './scripts/useMarked.js';
+import { Message } from './scripts/message.js';
 import mockData from './mock-data.js';
+
+import InputChat from './InputChat.vue';
+import MessageList from './MessageList.vue';
 
 import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
 import PausedSvg from '@/assets/paused.svg?raw';
@@ -95,24 +72,17 @@ import PausedSvg from '@/assets/paused.svg?raw';
 const loading = ref(false);
 // 是否请求被终止
 const isRequestAborted = ref(false);
-const currentRender = ref({
-  currentIndex: 0,
-  modelCode: '',
-  createTime: '',
-  responseMarkdownText: '',
-});
 
 const MarkdownRef = ref(null);
 const ContentRef = ref(null);
 
-// 聊天记录（二维数组，一条记录为一个对话）
-const chatHistoryList = ref([]);
+const chatMessage = ref(new Message());
 const showToBottomBtn = ref(false);
 
 const { parseMarkdown, initMarked, codeEventListener } = useMarked();
 
 const renderHtml = computed(() => {
-  const responseMarkdownText = currentRender.value.responseMarkdownText;
+  const responseMarkdownText = chatMessage.value.currentMessage.markdown;
   if (!responseMarkdownText) return '';
   return parseMarkdown(responseMarkdownText);
 });
@@ -129,7 +99,7 @@ function processLine(line) {
       const parsed = JSON.parse(dataStr);
       const contentChunk = parsed.choices?.[0]?.delta?.content;
       if (contentChunk !== undefined && contentChunk !== null) {
-        currentRender.value.responseMarkdownText += contentChunk;
+        chatMessage.value.currentMessage.markdown += contentChunk;
         return;
       }
     } catch (e) {
@@ -138,50 +108,14 @@ function processLine(line) {
   }
 }
 
-function updateHistoryChatList(params = {}) {
-  const { modelCode = 'Qwen3-Max', role = '', content = '', markdown = '' } = params || {};
-  const id = getUniqueid();
-  const item = {
-    id,
-    modelCode,
-    role,
-    content,
-    markdown,
-    createTime: formatTime(Date.now()),
-  };
-  if (role === Role.USER) {
-    chatHistoryList.value.push([item]);
-  } else if (role === Role.ASSISTANT) {
-    const renderHTML = MarkdownRef.value[MarkdownRef.value.length - 1].innerHTML || '';
-    const lastIndex = chatHistoryList.value.length - 1;
-    if (lastIndex >= 0) {
-      chatHistoryList.value[lastIndex].push({
-        ...item,
-        isAborted: isRequestAborted.value,
-        content: renderHTML.concat(isRequestAborted.value ? '\n\n 已停止响应。' : ''),
-      });
-    }
-  }
-}
-
-function updateCurrentRender(params = {}) {
-  const { currentIndex = 0, modelCode = '', createTime = '', responseMarkdownText = '' } = params || {};
-  currentRender.value = {
-    currentIndex,
-    modelCode,
-    createTime,
-    responseMarkdownText,
-  };
+function getRenderContent(index) {
+  const renderHTML = MarkdownRef.value?.[MarkdownRef.value?.length - 1]?.innerHTML || '';
+  const content = renderHTML.concat(isRequestAborted.value ? '\n\n 已停止响应。' : '');
+  return content;
 }
 
 async function beforeRequestChat(question) {
-  updateHistoryChatList({ role: Role.USER, content: question });
-  updateCurrentRender({
-    currentIndex: Math.max(chatHistoryList.value.length - 1, 0),
-    modelCode: 'Qwen3-Max',
-    createTime: formatTime(Date.now()),
-    responseMarkdownText: '',
-  });
+  chatMessage.value.addUser({ role: Role.USER, content: question });
   isRequestAborted.value = false;
   await nextTick();
   scrollToBottom(ContentRef.value, false);
@@ -211,7 +145,7 @@ async function handleChat({ question, abortController }) {
     });
 
     if (!res.ok) {
-      currentRender.value.responseMarkdownText += '\n\n 系统异常。';
+      chatMessage.value.currentMessage.markdown += '\n\n 系统异常。';
       return;
     }
 
@@ -220,7 +154,7 @@ async function handleChat({ question, abortController }) {
 
     while (true) {
       if (isRequestAborted.value) {
-        currentRender.value.responseMarkdownText += '\n\n 已停止响应。';
+        chatMessage.value.currentMessage.markdown += '\n\n 已停止响应。';
         break;
       }
       const { done, value } = await reader.read();
@@ -234,16 +168,18 @@ async function handleChat({ question, abortController }) {
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      currentRender.value.responseMarkdownText += '\n\n 已停止响应。';
+      chatMessage.value.currentMessage.markdown += '\n\n 已停止响应。';
       return;
     }
   } finally {
-    updateHistoryChatList({
+    chatMessage.value.addAssistant({
       role: Role.ASSISTANT,
-      markdown: currentRender.value.responseMarkdownText,
+      markdown: chatMessage.value.currentMessage.markdown,
+      content: getRenderContent(),
+      isAborted: isRequestAborted.value,
     });
     loading.value = false;
-    updateCurrentRender({});
+    chatMessage.value.clearCurrentMessage();
     // console.log('add', JSON.stringify(chatHistoryList.value));
   }
 }
@@ -269,9 +205,10 @@ async function init() {
   scrollToBottom(ContentRef.value, false);
   bindEvent();
   await initMarked(ContentRef.value);
+
   setTimeout(() => {
-    chatHistoryList.value = [...mockData];
-    currentRender.value.responseMarkdownText = mockData[0][1].markdown;
+    chatMessage.value.messages = [...mockData];
+    // currentRender.value.responseMarkdownText = mockData[0].markdown;
   }, 500);
 }
 
