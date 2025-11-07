@@ -95,6 +95,14 @@ class Message {
     }
   }
   /**
+   * 获取最后一条消息
+   * @returns {BaseMessage}
+   */
+  getLastMessage() {
+    if (this.messages.length === 0) return null;
+    return this.messages[this.messages.length - 1];
+  }
+  /**
    * 删除消息
    * @param {string} id
    */
