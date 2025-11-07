@@ -27,7 +27,7 @@
   </div>
 </template>
 <script setup>
-import { ref, shallowRef, nextTick } from 'vue';
+import { ref, shallowRef, nextTick, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { Role } from './scripts/config.js';
 
@@ -39,6 +39,10 @@ const props = defineProps({
   messageListRef: {
     type: Object,
     default: () => {},
+  },
+  suggestionText: {
+    type: String,
+    default: '',
   },
 });
 
@@ -108,6 +112,7 @@ async function beforeRequestChat() {
   isRequestAborted.value = false;
   // 新增用户消息到消息列表
   chatMessage.value.addUser({ role: Role.USER, content });
+  chatMessage.value.clearSuggestionList();
   abortController.value = new AbortController();
 
   question.value = '';
@@ -181,6 +186,15 @@ function handleStop() {
   loading.value = false;
   message.info('请求已终止');
 }
+
+watch(
+  () => props.suggestionText,
+  val => {
+    if (!val) return;
+    question.value = val;
+    handleChat();
+  }
+);
 </script>
 <style lang="scss">
 .ai-input-container {

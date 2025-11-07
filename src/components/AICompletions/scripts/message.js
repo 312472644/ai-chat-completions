@@ -38,6 +38,12 @@ class Message {
       markdown: '',
       createTime: formatTime(new Date()),
     };
+    // 每次回答完成后,更新建议列表
+    this.suggestionList = [
+      { text: '有哪些场景不适合使用wheel事件？' },
+      { text: '如何用touch事件替代wheel事件？' },
+      { text: 'wheel事件在移动端有哪些局限性？' },
+    ];
     // 消息列表
     this.messages = [];
   }
@@ -56,6 +62,20 @@ class Message {
     };
   }
   /**
+   * 更新建议列表
+   * @param {*} suggestionList
+   */
+  updateSuggestionList(suggestionList) {
+    if (!suggestionList || suggestionList.length === 0) return;
+    this.suggestionList = suggestionList;
+  }
+  /**
+   * 清空建议列表
+   */
+  clearSuggestionList() {
+    this.suggestionList = [];
+  }
+  /**
    * 清空当前消息
    */
   clearCurrentMessage() {
@@ -63,6 +83,7 @@ class Message {
       modelCode: '',
       markdown: '',
       createTime: formatTime(new Date()),
+      suggestionList: [],
     };
   }
   /**

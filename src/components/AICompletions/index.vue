@@ -1,10 +1,20 @@
 <template>
   <div class="ai-chat">
     <div class="chat-wrapper">
-      <MessageList ref="MessageListRef" :chat-message="chatMessage" :loading="loading"></MessageList>
+      <MessageList
+        ref="MessageListRef"
+        :chat-message="chatMessage"
+        :loading="loading"
+        @suggestion-click="handleSuggestionClick"
+      ></MessageList>
       <!--输入-->
       <div class="input-container">
-        <InputChat v-model:loading="loading" v-model="chatMessage" :messageListRef="MessageListRef" />
+        <InputChat
+          v-model:loading="loading"
+          v-model="chatMessage"
+          :suggestion-text="suggestionText"
+          :messageListRef="MessageListRef"
+        />
       </div>
     </div>
   </div>
@@ -24,6 +34,11 @@ const MessageListRef = ref(null);
 
 const chatMessage = ref(new Message());
 const loading = ref(false);
+const suggestionText = ref('');
+
+function handleSuggestionClick(item) {
+  suggestionText.value = item.text;
+}
 
 async function init() {
   await nextTick();

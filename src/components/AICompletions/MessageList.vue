@@ -38,11 +38,20 @@
             </div>
             <div class="answer-tool"></div>
           </div>
-          <!--AI建议列表-->
-          <div></div>
         </div>
         <div v-if="showScrollButton" @click="scrollToBottom" class="scroll-to-bottom">
           <div class="bottom-btn" :class="{ loading: loading }" v-html="ArrowUpwardSvg"></div>
+        </div>
+      </div>
+      <!--AI建议列表-->
+      <div v-if="chatMessage.suggestionList.length" class="suggestion-list">
+        <div
+          v-for="(item, index) in chatMessage.suggestionList"
+          :key="index"
+          class="suggestion-item"
+          @click="() => handleSuggestionClick(item)"
+        >
+          {{ item.text }}
         </div>
       </div>
     </div>
@@ -55,6 +64,8 @@ import useMarked from './scripts/useMarked.js';
 import { scrollToBottom as _scrollToBottom, getUniqueid, formatTime } from './scripts/utils.js';
 
 import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
+
+const emits = defineEmits(['suggestion-click']);
 
 const props = defineProps({
   chatMessage: {
@@ -75,7 +86,6 @@ const isAutoScroll = ref(true);
 const { parseMarkdown, initMarked } = useMarked();
 
 const showScrollButton = computed(() => {
-  // 如果是加载中
   if (props.loading) {
     return !isAutoScroll.value;
   } else {
@@ -102,6 +112,10 @@ function handleScroll() {
 function scrollToBottom(isSmooth) {
   loadComplete();
   _scrollToBottom(MessageContentRef.value, isSmooth);
+}
+
+function handleSuggestionClick(item) {
+  emits('suggestion-click', item);
 }
 
 function handleWheel() {
@@ -147,6 +161,26 @@ watch(
   .chat-list-container {
     margin: 0 auto;
     max-width: $max-width;
+  }
+  .suggestion-list {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    display: flex;
+    gap: 12px;
+    .suggestion-item {
+      color: rgba(17, 17, 51, 0.7);
+      font-size: 14px;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      background-color: #fafafb;
+      transition: background-color 0.3s ease-in-out;
+      &:hover {
+        cursor: pointer;
+        background-color: #e8eaec;
+      }
+    }
   }
   .chat-list {
     padding: 12px 4px 0 0;
