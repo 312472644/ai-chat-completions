@@ -63,11 +63,14 @@
       <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
     </div>
   </div>
+  <!--删除按钮-->
   <div v-if="isDeleteMode" class="delete-container">
     <AButton class="delete-item" @click="handleDelete">取消</AButton>
     <AButton class="delete-item" @click="handleDeleteAll">删除全部</AButton>
     <AButton class="delete-item" type="primary" @click="handleDeleteSelected">删除选中</AButton>
   </div>
+  <!--选中文字后菜单-->
+  <SelectedMenu :MessageContentRef="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
 </template>
 <script setup>
 import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch } from 'vue';
@@ -79,6 +82,7 @@ import {
   message,
   Modal,
 } from 'ant-design-vue';
+import SelectedMenu from './SelectedMenu.vue';
 
 import AnswerTool from './AnswerTool.vue';
 import SuggestionList from './SuggestionList.vue';
@@ -88,7 +92,7 @@ import { Role } from '../scripts/config.js';
 import useMarked from '../scripts/useMarked.js';
 import { scrollToBottom as _scrollToBottom } from '../scripts/utils.js';
 
-const emits = defineEmits(['refresh', 'suggestion-click', 'delete']);
+const emits = defineEmits(['refresh', 'suggestion-click', 'delete', 'quote-selected']);
 
 const props = defineProps({
   chatMessage: {
@@ -102,6 +106,8 @@ const props = defineProps({
 });
 
 const MessageContentRef = ref(null);
+const SelectedMenuRef = ref(null);
+
 const showToBottomBtn = ref(false);
 // 是否自动滚动
 const isAutoScroll = ref(true);
@@ -207,6 +213,7 @@ onMounted(() => init());
 onBeforeUnmount(() => {
   MessageContentRef.value.removeEventListener('scroll', handleScroll);
   window.removeEventListener('wheel', handleWheel);
+  window.removeEventListener('selectionchange', handleSelectionChange);
 });
 
 defineExpose({ scrollToBottom });

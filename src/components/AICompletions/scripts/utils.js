@@ -64,11 +64,12 @@ export function findParentElement(target, selector) {
 /**
  * 复制文本到剪贴板
  * @param {string} text 要复制的文本
- * @returns 
+ * @returns
  */
 export function copyText(text) {
   if (!text) return;
-  navigator.clipboard
+
+  return navigator.clipboard
     .writeText(text)
     .then(() => {
       message.success('复制成功');
@@ -76,4 +77,20 @@ export function copyText(text) {
     .catch(() => {
       message.error('复制失败');
     });
+}
+
+/**
+ * 函数防抖
+ * @param {Function} fn
+ * @param {Number} delay
+ * @returns
+ */
+export function debounce(fn, delay = 1000) {
+  let timer = null;
+  return function (...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay);
+  };
 }

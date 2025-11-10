@@ -1,6 +1,17 @@
 <template>
   <div class="ai-input-container">
     <div class="input-box">
+      <!--引用-->
+      <div v-if="quoteText" class="quote-container">
+        <AAlert closable @close="quoteText = ''">
+          <template #message>
+            <div class="quote-message">
+              <span style="padding-right: 8px; font-weight: bold">引用</span>
+              <span class="quote-text">{{ quoteText }}</span>
+            </div>
+          </template>
+        </AAlert>
+      </div>
       <div class="chat-textarea">
         <textarea
           class="textarea"
@@ -26,7 +37,7 @@
 </template>
 <script setup>
 import { ref, shallowRef, nextTick, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { message, Alert as AAlert } from 'ant-design-vue';
 import { Role } from './scripts/config.js';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
@@ -53,6 +64,7 @@ const loading = defineModel('loading', {
 
 const isRequestAborted = ref(false);
 const question = ref('');
+const quoteText = ref('');
 const abortController = shallowRef(null);
 
 /**
@@ -102,7 +114,7 @@ async function beforeRequestChat() {
   loading.value = true;
   isRequestAborted.value = false;
   // 新增用户消息到消息列表
-  chatMessage.value.addUser({ role: Role.USER, content });
+  chatMessage.value.addUser({ role: Role.USER, content, quoteText: quoteText.value });
   chatMessage.value.clearSuggestionList();
   abortController.value = new AbortController();
 
@@ -117,10 +129,11 @@ function finallyRequestChat() {
   chatMessage.value.addAssistant({
     role: Role.ASSISTANT,
     markdown: chatMessage.value.currentMessage.markdown,
+    quoteText: quoteText.value,
     content: getRenderContent(),
     isAborted: isRequestAborted.value,
   });
-  console.log('🚀 ~ finallyRequestChat ~ chatMessage:', JSON.stringify(chatMessage.value.messages));
+  console.log('🚀 ~ finallyRequestChat ~ chatMessage:', chatMessage.value);
   loading.value = false;
   chatMessage.value.clearCurrentMessage();
 }
@@ -184,7 +197,12 @@ async function refreshChat(text) {
   await handleChat();
 }
 
-defineExpose({ refreshChat });
+function setQuoteText(text) {
+  console.log('🚀 ~ setQuoteText ~ text:', text);
+  quoteText.value = text;
+}
+
+defineExpose({ refreshChat, setQuoteText });
 </script>
 <style lang="scss">
 .ai-input-container {
@@ -197,6 +215,26 @@ defineExpose({ refreshChat });
     color: #515a6e;
     display: flex;
     flex-direction: column;
+    .quote-container {
+      font-size: 14px;
+      color: #808080;
+      margin: 16px 0 0 0;
+      .ant-alert {
+        background-color: #f7f8fc;
+        border: none;
+        color: rgba(17, 17, 51, 0.5);
+      }
+      .quote-message {
+        display: flex;
+        .quote-text {
+          white-space: nowrap;
+          flex: 1 0 0;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
     .chat-textarea {
       flex: 1;
       padding-top: 10px;

@@ -8,6 +8,7 @@
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
         @delete="val => (isDeleteMode = val)"
+        @quote-selected="handleQuoteSelectedText"
       ></MessageList>
       <!--输入-->
       <div v-show="!isDeleteMode" class="input-container">
@@ -41,6 +42,10 @@ const isDeleteMode = ref(false);
 
 function handleSuggestionClick(item) {
   InputChatRef.value.refreshChat(item.text);
+}
+
+function handleQuoteSelectedText(text) {
+  InputChatRef.value.setQuoteText(text);
 }
 
 async function init() {

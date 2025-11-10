@@ -11,6 +11,8 @@ class BaseMessage {
     this.id = getUniqueid();
     // 消息角色(user, assistant)
     this.role = role;
+    // 引用文本
+    this.quoteText = '';
     // 模型编码
     this.modelCode = modelCode || DEFAULT_MODEL_CODE;
     // 消息内容(用户输入或助手回复。 HTML格式或文本)
