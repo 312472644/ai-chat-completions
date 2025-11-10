@@ -37,7 +37,7 @@
       <APopover>
         <template #content>
           <div class="popover-content">
-            <div class="popover-item">
+            <div class="popover-item" @click="handleDelete">
               <SvgIcon name="delete" size="1.1em" />
               <span>删除</span>
             </div>
@@ -54,7 +54,7 @@ import SvgIcon from '@/components/SvgIcon/index.vue';
 import { message } from 'ant-design-vue';
 import { copyText } from '../scripts/utils.js';
 
-const emits = defineEmits(['refresh']);
+const emits = defineEmits(['refresh', 'delete']);
 
 const props = defineProps({
   item: {
@@ -83,6 +83,10 @@ function handleCopyText() {
 function handleProcessOpinion(type) {
   console.log('🚀 ~ handleProcessOpinion ~ type:', type);
   message.warn('功能暂未实现');
+}
+
+function handleDelete() {
+  emits('delete');
 }
 
 function handleRefresh() {

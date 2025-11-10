@@ -120,6 +120,7 @@ function finallyRequestChat() {
     content: getRenderContent(),
     isAborted: isRequestAborted.value,
   });
+  console.log('🚀 ~ finallyRequestChat ~ chatMessage:', JSON.stringify(chatMessage.value.messages));
   loading.value = false;
   chatMessage.value.clearCurrentMessage();
 }

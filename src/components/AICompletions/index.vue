@@ -7,9 +7,10 @@
         :loading="loading"
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
+        @delete="val => (isDeleteMode = val)"
       ></MessageList>
       <!--输入-->
-      <div class="input-container">
+      <div v-show="!isDeleteMode" class="input-container">
         <InputChat
           ref="InputChatRef"
           v-model:loading="loading"
@@ -36,6 +37,7 @@ const MessageListRef = ref(null);
 const chatMessage = ref(new Message());
 const loading = ref(false);
 const InputChatRef = ref(null);
+const isDeleteMode = ref(false);
 
 function handleSuggestionClick(item) {
   InputChatRef.value.refreshChat(item.text);

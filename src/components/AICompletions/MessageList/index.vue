@@ -2,8 +2,17 @@
   <div ref="MessageContentRef" class="message-container">
     <div class="chat-list-container">
       <div v-if="chatMessage.messages.length" class="chat-list">
-        <div data-type="chat-item" v-for="(item, index) in chatMessage.messages" :key="index" :id="item.id">
+        <div
+          data-type="chat-item"
+          v-for="(item, index) in chatMessage.messages"
+          :class="{ 'chat-item': true, delete: isDeleteMode, checked: item.checked }"
+          :key="index"
+          :id="item.id"
+        >
           <div v-if="item[Role.USER]" class="question-item-box" :id="item[Role.USER].id">
+            <div v-if="isDeleteMode" class="question-meta">
+              <ACheckbox v-model:checked="item.checked" />
+            </div>
             <div class="question-item">
               {{ item[Role.USER].content }}
             </div>
@@ -21,15 +30,17 @@
               <div class="markdown-output" v-html="item[Role.ASSISTANT].content"></div>
             </div>
             <AnswerTool
+              v-if="!isDeleteMode"
               :item="item"
               :showRefresh="index === chatMessage.messages.length - 1"
+              @delete="handleDelete"
               @refresh="handleRefresh"
             />
           </div>
           <!--正在输出的对话-->
           <div v-else class="answer-item-box" :id="item?.[Role.ASSISTANT]?.id">
             <div v-if="index === chatMessage.messages.length - 1" class="answer-meta">
-              <div class="model-code">{{ chatMessage.currentMessage.modelCode || 'Qwen3-Max' }}</div>
+              <div class="model-code">{{ chatMessage.currentMessage.modelCode }}</div>
               <div class="create-time">
                 {{ chatMessage.currentMessage.createTime }}
               </div>
@@ -52,10 +63,22 @@
       <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
     </div>
   </div>
+  <div v-if="isDeleteMode" class="delete-container">
+    <AButton class="delete-item" @click="handleDelete">取消</AButton>
+    <AButton class="delete-item" @click="handleDeleteAll">删除全部</AButton>
+    <AButton class="delete-item" type="primary" @click="handleDeleteSelected">删除选中</AButton>
+  </div>
 </template>
 <script setup>
 import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch } from 'vue';
-import { Popover as APopover, Tooltip as ATooltip } from 'ant-design-vue';
+import {
+  Popover as APopover,
+  Tooltip as ATooltip,
+  Checkbox as ACheckbox,
+  Button as AButton,
+  message,
+  Modal,
+} from 'ant-design-vue';
 
 import AnswerTool from './AnswerTool.vue';
 import SuggestionList from './SuggestionList.vue';
@@ -65,7 +88,7 @@ import { Role } from '../scripts/config.js';
 import useMarked from '../scripts/useMarked.js';
 import { scrollToBottom as _scrollToBottom } from '../scripts/utils.js';
 
-const emits = defineEmits(['refresh', 'suggestion-click']);
+const emits = defineEmits(['refresh', 'suggestion-click', 'delete']);
 
 const props = defineProps({
   chatMessage: {
@@ -82,6 +105,7 @@ const MessageContentRef = ref(null);
 const showToBottomBtn = ref(false);
 // 是否自动滚动
 const isAutoScroll = ref(true);
+const isDeleteMode = ref(false);
 
 const { parseMarkdown, initMarked } = useMarked();
 
@@ -102,12 +126,51 @@ const renderHtml = computed(() => {
   return parseMarkdown(responseMarkdownText);
 });
 
+const checkedItems = computed(() => props.chatMessage.messages.filter(item => item.checked));
+
 function handleRefresh() {
   // 删除最后一条数据，重新请求
   const lastItem = props.chatMessage.messages.splice(props.chatMessage.messages.length - 1, 1);
   if (!lastItem.length) return;
   const question = lastItem[0][Role.USER].content;
   emits('refresh', { text: question });
+}
+
+function handleDelete() {
+  isDeleteMode.value = !isDeleteMode.value;
+  emits('delete', isDeleteMode.value);
+}
+
+function handleDeleteAll() {
+  Modal.confirm({
+    title: '提示',
+    content: '确定要删除所有项吗？',
+    cancelText: '取消',
+    okText: '确认',
+    onOk: () => {
+      props.chatMessage.messages = [];
+      handleDelete();
+    },
+  });
+}
+
+function handleDeleteSelected() {
+  const checkedItems = props.chatMessage.messages.filter(item => item.checked);
+  if (!checkedItems.length) {
+    message.warn('请选择要删除的项');
+    return;
+  }
+  const checkedLength = checkedItems.length;
+  Modal.confirm({
+    title: '提示',
+    content: `确定要删除 ${checkedLength} 条选中项吗？`,
+    cancelText: '取消',
+    okText: '确认',
+    onOk: () => {
+      props.chatMessage.messages = props.chatMessage.messages.filter(item => !item.checked);
+      handleDelete();
+    },
+  });
 }
 
 function handleScroll() {
@@ -170,10 +233,23 @@ watch(
 
   .chat-list {
     padding: 12px 4px 0 0;
+    .chat-item {
+      &.delete {
+        background-color: #fafafb;
+        padding: 16px;
+        margin-bottom: 28px;
+        border-radius: 10px;
+      }
+      &.checked {
+        box-shadow: 1px 1px 1px #ff4d4f, 0px -1px 1px #ff4d4f, -1px 0px 1px #ff4d4f;
+      }
+    }
     .question-item-box {
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      justify-content: space-between;
       .question-item {
+        margin-left: auto;
         background-color: #f1f3f5;
         padding: 10px 12px;
         border-radius: 16px 0 16px 16px;
@@ -260,5 +336,12 @@ watch(
       }
     }
   }
+}
+
+.delete-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 0;
 }
 </style>
