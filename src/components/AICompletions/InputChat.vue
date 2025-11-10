@@ -13,14 +13,12 @@
       <div class="function-area">
         <div class="left"></div>
         <div class="right">
-          <div
-            v-if="!loading"
-            v-html="ArrowUpwardSvg"
-            class="operation-btn"
-            :class="{ disabled: !question }"
-            @click="handleChat"
-          ></div>
-          <div v-else v-html="PausedSvg" class="operation-btn-stop" @click="handleStop"></div>
+          <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
+            <SvgIcon name="arrow_upward" size="20px" class="arrow" />
+          </div>
+          <div v-else class="operation-btn-stop" @click="handleStop">
+            <SvgIcon name="paused" size="32px" class="pause" />
+          </div>
         </div>
       </div>
     </div>
@@ -30,19 +28,17 @@
 import { ref, shallowRef, nextTick, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { Role } from './scripts/config.js';
+import SvgIcon from '@/components/SvgIcon/index.vue';
 
-import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
-import PausedSvg from '@/assets/paused.svg?raw';
 import { Message } from './scripts/message.js';
 
 const props = defineProps({
+  /**
+   * 消息列表引用
+   */
   messageListRef: {
     type: Object,
     default: () => {},
-  },
-  suggestionText: {
-    type: String,
-    default: '',
   },
 });
 
@@ -87,12 +83,7 @@ function processLine(line) {
 function getBodyParams(content) {
   return JSON.stringify({
     stream: true,
-    messages: [
-      {
-        role: Role.USER,
-        content,
-      },
-    ],
+    messages: [{ role: Role.USER, content }],
   });
 }
 
@@ -187,14 +178,12 @@ function handleStop() {
   message.info('请求已终止');
 }
 
-watch(
-  () => props.suggestionText,
-  val => {
-    if (!val) return;
-    question.value = val;
-    handleChat();
-  }
-);
+async function refreshChat(text) {
+  question.value = text;
+  await handleChat();
+}
+
+defineExpose({ refreshChat });
 </script>
 <style lang="scss">
 .ai-input-container {

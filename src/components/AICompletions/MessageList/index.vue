@@ -11,7 +11,7 @@
           <!--已经完成的对话-->
           <div v-if="item[Role.ASSISTANT]?.content" class="answer-item-box" :id="item[Role.ASSISTANT].id">
             <div class="answer-meta">
-              <div class="model-code">{{ item[Role.ASSISTANT].modelCode || 'Qwen3-Max' }}</div>
+              <div class="model-code">{{ item[Role.ASSISTANT].modelCode }}</div>
               <div class="create-time">
                 {{ item[Role.ASSISTANT].createTime }}
               </div>
@@ -20,7 +20,11 @@
               <!--历史记录-->
               <div class="markdown-output" v-html="item[Role.ASSISTANT].content"></div>
             </div>
-            <div class="answer-tool"></div>
+            <AnswerTool
+              :item="item"
+              :showRefresh="index === chatMessage.messages.length - 1"
+              @refresh="handleRefresh"
+            />
           </div>
           <!--正在输出的对话-->
           <div v-else class="answer-item-box" :id="item?.[Role.ASSISTANT]?.id">
@@ -36,36 +40,32 @@
               <!--正在渲染-->
               <div ref="MarkdownRef" class="markdown-output" v-html="renderHtml"></div>
             </div>
-            <div class="answer-tool"></div>
           </div>
         </div>
         <div v-if="showScrollButton" @click="scrollToBottom" class="scroll-to-bottom">
-          <div class="bottom-btn" :class="{ loading: loading }" v-html="ArrowUpwardSvg"></div>
+          <div class="bottom-btn" :class="{ loading: loading }">
+            <SvgIcon name="arrow_upward" size="1em" class="arrow" />
+          </div>
         </div>
       </div>
       <!--AI建议列表-->
-      <div v-if="chatMessage.suggestionList.length" class="suggestion-list">
-        <div
-          v-for="(item, index) in chatMessage.suggestionList"
-          :key="index"
-          class="suggestion-item"
-          @click="() => handleSuggestionClick(item)"
-        >
-          {{ item.text }}
-        </div>
-      </div>
+      <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
     </div>
   </div>
 </template>
 <script setup>
 import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch } from 'vue';
-import { Role } from './scripts/config.js';
-import useMarked from './scripts/useMarked.js';
-import { scrollToBottom as _scrollToBottom, getUniqueid, formatTime } from './scripts/utils.js';
+import { Popover as APopover, Tooltip as ATooltip } from 'ant-design-vue';
 
-import ArrowUpwardSvg from '@/assets/arrow_upward.svg?raw';
+import AnswerTool from './AnswerTool.vue';
+import SuggestionList from './SuggestionList.vue';
+import SvgIcon from '@/components/SvgIcon/index.vue';
 
-const emits = defineEmits(['suggestion-click']);
+import { Role } from '../scripts/config.js';
+import useMarked from '../scripts/useMarked.js';
+import { scrollToBottom as _scrollToBottom } from '../scripts/utils.js';
+
+const emits = defineEmits(['refresh', 'suggestion-click']);
 
 const props = defineProps({
   chatMessage: {
@@ -102,20 +102,25 @@ const renderHtml = computed(() => {
   return parseMarkdown(responseMarkdownText);
 });
 
+function handleRefresh() {
+  // 删除最后一条数据，重新请求
+  const lastItem = props.chatMessage.messages.splice(props.chatMessage.messages.length - 1, 1);
+  if (!lastItem.length) return;
+  const question = lastItem[0][Role.USER].content;
+  emits('refresh', { text: question });
+}
+
 function handleScroll() {
   const messageContentDOM = MessageContentRef.value;
   if (!messageContentDOM) return false;
   const { scrollTop, scrollHeight, clientHeight } = messageContentDOM;
+  if (!scrollTop) return;
   showToBottomBtn.value = scrollHeight - (scrollTop + clientHeight) > 0;
 }
 
 function scrollToBottom(isSmooth) {
   loadComplete();
   _scrollToBottom(MessageContentRef.value, isSmooth);
-}
-
-function handleSuggestionClick(item) {
-  emits('suggestion-click', item);
 }
 
 function handleWheel() {
@@ -152,7 +157,7 @@ watch(
   }
 );
 </script>
-<style lang="scss" scoped>
+<style lang="scss">
 .message-container {
   flex: 1;
   min-height: 0;
@@ -162,26 +167,7 @@ watch(
     margin: 0 auto;
     max-width: $max-width;
   }
-  .suggestion-list {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    display: flex;
-    gap: 12px;
-    .suggestion-item {
-      color: rgba(17, 17, 51, 0.7);
-      font-size: 14px;
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: flex;
-      background-color: #fafafb;
-      transition: background-color 0.3s ease-in-out;
-      &:hover {
-        cursor: pointer;
-        background-color: #e8eaec;
-      }
-    }
-  }
+
   .chat-list {
     padding: 12px 4px 0 0;
     .question-item-box {
@@ -211,10 +197,6 @@ watch(
           font-size: 12px;
           color: #c5c8ce;
         }
-      }
-      .answer-content {
-      }
-      .answer-tool {
       }
     }
 
@@ -249,7 +231,7 @@ watch(
           &::after {
             content: '';
             position: absolute;
-            background: url('../../assets/loading.png') no-repeat center center;
+            background: url('../../../assets/images/loading.png') no-repeat center center;
             background-size: 100% 100%;
             width: 100%;
             height: 100%;

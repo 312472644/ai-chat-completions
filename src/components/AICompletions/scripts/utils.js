@@ -1,3 +1,5 @@
+import { message } from 'ant-design-vue';
+
 /**
  * 滚动至DOM元素最底部
  * @param {HTMLElement} target 目标元素
@@ -22,7 +24,7 @@ export function getUniqueid() {
       v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-  return `xx-${id}`
+  return `xx-${id}`;
 }
 
 /**
@@ -57,4 +59,21 @@ export function findParentElement(target, selector) {
     target = target.parentElement;
   }
   return null;
+}
+
+/**
+ * 复制文本到剪贴板
+ * @param {string} text 要复制的文本
+ * @returns 
+ */
+export function copyText(text) {
+  if (!text) return;
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      message.success('复制成功');
+    })
+    .catch(() => {
+      message.error('复制失败');
+    });
 }

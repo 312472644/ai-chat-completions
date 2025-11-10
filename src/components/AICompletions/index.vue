@@ -5,14 +5,15 @@
         ref="MessageListRef"
         :chat-message="chatMessage"
         :loading="loading"
+        @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
       ></MessageList>
       <!--输入-->
       <div class="input-container">
         <InputChat
+          ref="InputChatRef"
           v-model:loading="loading"
           v-model="chatMessage"
-          :suggestion-text="suggestionText"
           :messageListRef="MessageListRef"
         />
       </div>
@@ -22,7 +23,7 @@
 <script setup>
 import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
 import InputChat from './InputChat.vue';
-import MessageList from './MessageList.vue';
+import MessageList from './MessageList/index.vue';
 
 import { Role } from './scripts/config.js';
 import { scrollToBottom, getUniqueid, formatTime } from './scripts/utils.js';
@@ -34,18 +35,21 @@ const MessageListRef = ref(null);
 
 const chatMessage = ref(new Message());
 const loading = ref(false);
-const suggestionText = ref('');
+const InputChatRef = ref(null);
 
 function handleSuggestionClick(item) {
-  suggestionText.value = item.text;
+  InputChatRef.value.refreshChat(item.text);
 }
 
 async function init() {
-  await nextTick();
-  MessageListRef.value.scrollToBottom();
+  // chatMessage.value.messages = [...mockData];
+  // await nextTick();
+  // MessageListRef.value.scrollToBottom(false);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     chatMessage.value.messages = [...mockData];
+    await nextTick();
+    MessageListRef.value.scrollToBottom(false);
     // chatMessage.value.currentMessage.markdown = mockData[0].markdown;
     // currentRender.value.responseMarkdownText = mockData[0].markdown;
   }, 500);

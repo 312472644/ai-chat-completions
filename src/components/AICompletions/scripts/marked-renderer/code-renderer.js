@@ -2,10 +2,10 @@ import { findParentElement } from '../utils.js';
 import { HighlighterConfig } from '../config.js';
 import { message } from 'ant-design-vue';
 
-import CopySvg from '@/assets/copy.svg?raw';
-import ArrowSvg from '@/assets/arrow.svg?raw';
-import BedtimeSvg from '@/assets/bedtime.svg?raw';
-import LightSvg from '@/assets/light_mode.svg?raw';
+import CopySvg from '@/assets/svg/copy.svg?raw';
+import ArrowSvg from '@/assets/svg/arrow.svg?raw';
+import BedtimeSvg from '@/assets/svg/bedtime.svg?raw';
+import LightSvg from '@/assets/svg/light_mode.svg?raw';
 
 const globalInstance = { highlighter: null };
 

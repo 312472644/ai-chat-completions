@@ -1,6 +1,8 @@
 import { formatTime, getUniqueid } from './utils.js';
 import { Role } from './config.js';
 
+const DEFAULT_MODEL_CODE = 'Qwen3-Max';
+
 /**
  * 消息类
  */
@@ -10,7 +12,7 @@ class BaseMessage {
     // 消息角色(user, assistant)
     this.role = role;
     // 模型编码
-    this.modelCode = modelCode;
+    this.modelCode = modelCode || DEFAULT_MODEL_CODE;
     // 消息内容(用户输入或助手回复。 HTML格式或文本)
     this.content = content;
     // 助手回复的markdown格式
@@ -34,15 +36,15 @@ class Message {
   constructor() {
     // 当前渲染的消息
     this.currentMessage = {
-      modelCode: '',
+      modelCode: DEFAULT_MODEL_CODE,
       markdown: '',
       createTime: formatTime(new Date()),
     };
-    // 每次回答完成后,更新建议列表
+    //TODO 每次回答完成后,更新建议列表
     this.suggestionList = [
-      { text: '有哪些场景不适合使用wheel事件？' },
-      { text: '如何用touch事件替代wheel事件？' },
-      { text: 'wheel事件在移动端有哪些局限性？' },
+      // { text: '有哪些场景不适合使用wheel事件？' },
+      // { text: '如何用touch事件替代wheel事件？' },
+      // { text: 'wheel事件在移动端有哪些局限性？' },
     ];
     // 消息列表
     this.messages = [];
@@ -57,8 +59,8 @@ class Message {
     const { modelCode, markdown } = message || {};
     this.currentMessage = {
       modelCode,
-      createTime: formatTime(new Date()),
       markdown,
+      createTime: formatTime(new Date()),
     };
   }
   /**
@@ -80,9 +82,9 @@ class Message {
    */
   clearCurrentMessage() {
     this.currentMessage = {
-      modelCode: '',
+      modelCode: DEFAULT_MODEL_CODE,
       markdown: '',
-      createTime: formatTime(new Date()),
+      createTime: '',
       suggestionList: [],
     };
   }
