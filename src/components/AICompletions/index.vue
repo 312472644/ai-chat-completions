@@ -54,11 +54,10 @@ async function init() {
   // MessageListRef.value.scrollToBottom(false);
 
   setTimeout(async () => {
-    chatMessage.value.messages = [...mockData];
+    // chatMessage.value.messages = [...mockData];
+    // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
     await nextTick();
-    MessageListRef.value.scrollToBottom(false);
-    // chatMessage.value.currentMessage.markdown = mockData[0].markdown;
-    // currentRender.value.responseMarkdownText = mockData[0].markdown;
+    // MessageListRef.value.scrollToBottom(false);
   }, 500);
 }
 

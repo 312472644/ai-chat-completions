@@ -94,3 +94,14 @@ export function debounce(fn, delay = 1000) {
     }, delay);
   };
 }
+
+/**
+ * 将html元素字符串转化成dom元素
+ * @param {string} htmlString
+ * @returns
+ */
+export function htmlToElement(htmlString) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, 'text/html');
+  return doc.body;
+}

@@ -53,7 +53,7 @@ function getEndOfSelectionRect() {
 
 function showSelectMenu(rect) {
   const { left, top, width, height } = rect;
-  SelectedMenuRef.value.style.left = `${left}px`;
+  SelectedMenuRef.value.style.left = `${left - 5}px`;
   SelectedMenuRef.value.style.top = `${top + 8 + height}px`;
   SelectedMenuRef.value.style.display = 'block';
 }

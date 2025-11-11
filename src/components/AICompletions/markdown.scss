@@ -135,7 +135,7 @@
     margin: 24px 0;
   }
 
-  // 自定义代码块（带 header/footer）
+  // 自定义代码块
   .custom-code-block {
     border: 1px solid #e1e4e8;
     border-radius: 10px;
@@ -240,6 +240,41 @@
         background: #23262e;
         color: rgba(255, 255, 255, 0.7);
       }
+    }
+  }
+
+  // 自定义图片渲染
+  .custom-image-block {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    cursor: pointer;
+    .image-placeholder {
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      width: 100%;
+      height: 100%;
+      background-color: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .spinner-border {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border-style: solid;
+        border-width: 2px;
+        border-color: #ececec #ececec #ececec #2b85e4;
+        animation: rotate 1s linear infinite;
+      }
+    }
+    > img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
     }
   }
 }

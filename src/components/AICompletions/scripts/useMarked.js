@@ -4,7 +4,8 @@ import { createHighlighter } from 'shiki';
 import { Marked, Renderer } from 'marked';
 import { HighlighterConfig } from './config.js';
 
-import { rendererCode, codeEventListener } from './marked-renderer/code-renderer.js';
+import { rendererCode, codeEventListener } from './marked-renderer/code.js';
+import { rendererImage } from './marked-renderer/image.js';
 
 /**
  * 解析 markdown 文本
@@ -19,6 +20,7 @@ const useMarked = () => {
 
   const event = {
     handleCode: () => {},
+    handleImage: () => {},
   };
 
   /**
@@ -45,6 +47,11 @@ const useMarked = () => {
    */
   function customRenderer() {
     render.code = rendererCode(highlighter.value, HighlighterConfig.theme.light);
+    render.image = rendererImage;
+    // 超链接
+    render.link = ({ href, text }) => {
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    };
   }
 
   async function initHighlighter() {
@@ -65,6 +72,7 @@ const useMarked = () => {
 
   onBeforeUnmount(() => {
     event?.handleCode?.();
+    event?.handleImage?.();
   });
 
   return {
