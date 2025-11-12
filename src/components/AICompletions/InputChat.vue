@@ -156,20 +156,28 @@ async function requestAI(bodyParams) {
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder('utf-8');
+  let buffer = '';
 
   while (true) {
-    // if (isRequestAborted.value) {
-    //   chatMessage.value.currentMessage.markdown += '\n\n 已停止响应。';
-    //   break;
-    // }
     const { done, value } = await reader.read();
     if (done) break;
 
+    if (isRequestAborted.value) {
+      chatMessage.value.currentMessage.markdown += '\n\n已停止响应。';
+      break;
+    }
+
     const chunk = decoder.decode(value, { stream: true });
     const lines = chunk.split('\n');
+    buffer = lines.pop();
     for (const line of lines) {
       processLine(line);
     }
+  }
+
+  // 最后一块未处理完的行
+  if (buffer.trim()) {
+    processLine(buffer);
   }
 }
 

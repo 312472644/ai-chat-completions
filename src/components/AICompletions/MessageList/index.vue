@@ -213,7 +213,6 @@ onMounted(() => init());
 onBeforeUnmount(() => {
   MessageContentRef.value.removeEventListener('scroll', handleScroll);
   window.removeEventListener('wheel', handleWheel);
-  window.removeEventListener('selectionchange', handleSelectionChange);
 });
 
 defineExpose({ scrollToBottom });
