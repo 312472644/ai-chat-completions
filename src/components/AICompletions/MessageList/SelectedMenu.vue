@@ -15,7 +15,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
 import { message } from 'ant-design-vue';
-import { debounce, copyText } from '../scripts/utils.js';
+import { debounce, copyText } from '@/utils/index';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
 const emits = defineEmits(['quote-selected']);

@@ -58,7 +58,7 @@ class Message {
    */
   updateCurrentMessage(message) {
     if (!message) return;
-    const { modelCode, markdown } = message || {};
+    const { modelCode = DEFAULT_MODEL_CODE, markdown } = message || {};
     this.currentMessage = {
       modelCode,
       markdown,
@@ -112,6 +112,7 @@ class Message {
   addAssistant(message) {
     if (!message) return;
     const assistantMessage = new BaseMessage(message);
+    assistantMessage.role = Role.ASSISTANT;
     assistantMessage.isAborted = message.isAborted;
     const lastIndex = this.messages.length - 1;
     if (lastIndex >= 0) {

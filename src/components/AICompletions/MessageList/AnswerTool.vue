@@ -52,7 +52,7 @@
 import { Popover as APopover, Tooltip as ATooltip } from 'ant-design-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { message } from 'ant-design-vue';
-import { copyText } from '../scripts/utils.js';
+import { copyText } from '@/utils/index';
 
 const emits = defineEmits(['refresh', 'delete']);
 

@@ -1,4 +1,4 @@
-import { getUniqueid } from '../utils';
+import { getUniqueid } from '@/utils/index';
 
 const imgSet = new Set();
 /**
@@ -22,6 +22,8 @@ export function rendererImage({ href, alt }) {
     <div class="image-placeholder">
       <div class="spinner-border" role="status"></div>
     </div>
-    <img src="${href}" alt="${alt || ''}" width="100px" height="100px" onload="${imageLoaded(id)}"  loading="lazy"  />
+    <img src="${href}" alt="${alt || ''}" width="100px" height="100px" onload="${imageLoaded(
+    id
+  )}"  loading="lazy"  />
   </div>`;
 }

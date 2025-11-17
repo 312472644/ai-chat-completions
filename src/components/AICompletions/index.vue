@@ -5,6 +5,7 @@
         ref="MessageListRef"
         :chat-message="chatMessage"
         :loading="loading"
+        :isRendering="isRendering"
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
         @delete="val => (isDeleteMode = val)"
@@ -12,11 +13,13 @@
       ></MessageList>
       <!--输入-->
       <div v-show="!isDeleteMode" class="input-container">
-        <InputChat
+        <ChatView
           ref="InputChatRef"
           v-model:loading="loading"
+          v-model:isRendering="isRendering"
           v-model="chatMessage"
           :messageListRef="MessageListRef"
+          @finish="handleFinish"
         />
       </div>
     </div>
@@ -24,19 +27,16 @@
 </template>
 <script setup>
 import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
-import InputChat from './InputChat.vue';
+import ChatView from './ChatView.vue';
 import MessageList from './MessageList/index.vue';
-
-import { Role } from './scripts/config.js';
-import { scrollToBottom, getUniqueid, formatTime } from './scripts/utils.js';
-import { message } from 'ant-design-vue';
 import { Message } from './scripts/message.js';
-import mockData from './mock-data.js';
+import mockData from './mock/mock-data.js';
 
 const MessageListRef = ref(null);
 
 const chatMessage = ref(new Message());
 const loading = ref(false);
+const isRendering = ref(false);
 const InputChatRef = ref(null);
 const isDeleteMode = ref(false);
 
@@ -44,21 +44,22 @@ function handleSuggestionClick(item) {
   InputChatRef.value.refreshChat(item.text);
 }
 
+// 意见列表
 function handleQuoteSelectedText(text) {
   InputChatRef.value.setQuoteText(text);
 }
 
-async function init() {
-  // chatMessage.value.messages = [...mockData];
-  // await nextTick();
-  // MessageListRef.value.scrollToBottom(false);
+function handleFinish(data) {
+  console.log('🚀 ~ 输出结果完成 ~ data:', data);
+}
 
-  setTimeout(async () => {
-    // chatMessage.value.messages = [...mockData];
-    // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
-    await nextTick();
-    // MessageListRef.value.scrollToBottom(false);
-  }, 500);
+async function init() {
+  // setTimeout(async () => {
+  //   chatMessage.value.messages = [...mockData];
+  //   // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
+  //   // await nextTick();
+  //   // MessageListRef.value.scrollToBottom(false);
+  // }, 500);
 }
 
 onMounted(() => init());

@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, shallowRef } from 'vue';
+import { nextTick, shallowRef } from 'vue';
 
 import { createHighlighter } from 'shiki';
 import { Marked, Renderer } from 'marked';
@@ -70,12 +70,13 @@ const useMarked = () => {
     eventListener();
   }
 
-  onBeforeUnmount(() => {
+  function release() {
     event?.handleCode?.();
     event?.handleImage?.();
-  });
+  }
 
   return {
+    release,
     initMarked,
     parseMarkdown,
   };

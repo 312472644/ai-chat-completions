@@ -1,4 +1,4 @@
-import { findParentElement } from '../utils.js';
+import { findParentElement } from '@/utils/index.js';
 import { HighlighterConfig } from '../config.js';
 import { message } from 'ant-design-vue';
 

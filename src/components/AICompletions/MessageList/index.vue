@@ -18,7 +18,11 @@
             </div>
           </div>
           <!--已经完成的对话-->
-          <div v-if="item[Role.ASSISTANT]?.content" class="answer-item-box" :id="item[Role.ASSISTANT].id">
+          <div
+            v-if="item[Role.ASSISTANT]?.content"
+            class="answer-item-box"
+            :id="item[Role.ASSISTANT].id"
+          >
             <div class="answer-meta">
               <div class="model-code">{{ item[Role.ASSISTANT].modelCode }}</div>
               <div class="create-time">
@@ -37,30 +41,31 @@
               @refresh="handleRefresh"
             />
           </div>
-          <!--正在输出的对话-->
-          <div v-else class="answer-item-box" :id="item?.[Role.ASSISTANT]?.id">
-            <div v-if="index === chatMessage.messages.length - 1" class="answer-meta">
-              <div class="model-code">{{ chatMessage.currentMessage.modelCode }}</div>
-              <div class="create-time">
-                {{ chatMessage.currentMessage.createTime }}
-              </div>
-            </div>
-            <!--加载动画-->
-            <div v-if="index === chatMessage.messages.length - 1 && loading && !renderHtml" class="cursor"></div>
-            <div class="answer-content">
-              <!--正在渲染-->
-              <div ref="MarkdownRef" class="markdown-output" v-html="renderHtml"></div>
-            </div>
+        </div>
+      </div>
+      <!--正在渲染的对话-->
+      <div class="current-render answer-item-box" :class="{ stdin: loading }">
+        <div class="answer-meta">
+          <div class="model-code">{{ chatMessage.currentMessage.modelCode }}</div>
+          <div class="create-time">
+            {{ chatMessage.currentMessage.createTime }}
           </div>
         </div>
-        <div v-if="showScrollButton" @click="scrollToBottom" class="scroll-to-bottom">
-          <div class="bottom-btn" :class="{ loading: loading }">
-            <SvgIcon name="arrow_upward" size="1em" class="arrow" />
-          </div>
+        <div class="answer-content">
+          <div v-if="isRendering" class="cursor"></div>
+          <div ref="RenderRef" class="markdown-output"></div>
+        </div>
+      </div>
+      <div v-if="showScrollButton" @click="scrollToBottom" class="scroll-to-bottom">
+        <div class="bottom-btn" :class="{ loading: loading }">
+          <SvgIcon name="arrow_upward" size="1em" class="arrow" />
         </div>
       </div>
       <!--AI建议列表-->
-      <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
+      <SuggestionList
+        :list="chatMessage.suggestionList"
+        @suggestion-click="item => $emit('suggestion-click', item)"
+      />
     </div>
   </div>
   <!--删除按钮-->
@@ -70,10 +75,13 @@
     <AButton class="delete-item" type="primary" @click="handleDeleteSelected">删除选中</AButton>
   </div>
   <!--选中文字后菜单-->
-  <SelectedMenu :MessageContentRef="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
+  <SelectedMenu
+    :MessageContentRef="MessageContentRef"
+    @quote-selected="text => $emit('quote-selected', text)"
+  />
 </template>
 <script setup>
-import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch } from 'vue';
+import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch, shallowRef } from 'vue';
 import {
   Popover as APopover,
   Tooltip as ATooltip,
@@ -103,17 +111,21 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isRendering: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const MessageContentRef = ref(null);
 const SelectedMenuRef = ref(null);
+const RenderRef = ref(null);
 
 const showToBottomBtn = ref(false);
 // 是否自动滚动
 const isAutoScroll = ref(true);
 const isDeleteMode = ref(false);
-
-const { parseMarkdown, initMarked } = useMarked();
+const interval = ref(false);
 
 const showScrollButton = computed(() => {
   if (props.loading) {
@@ -121,15 +133,6 @@ const showScrollButton = computed(() => {
   } else {
     return showToBottomBtn.value;
   }
-});
-
-const renderHtml = computed(() => {
-  const responseMarkdownText = props.chatMessage.currentMessage.markdown;
-  if (!responseMarkdownText) return '';
-  if (isAutoScroll.value) {
-    scrollToBottom();
-  }
-  return parseMarkdown(responseMarkdownText);
 });
 
 const checkedItems = computed(() => props.chatMessage.messages.filter(item => item.checked));
@@ -189,7 +192,9 @@ function handleScroll() {
 
 function scrollToBottom(isSmooth) {
   loadComplete();
-  _scrollToBottom(MessageContentRef.value, isSmooth);
+  setTimeout(() => {
+    _scrollToBottom(MessageContentRef.value, isSmooth);
+  }, 0);
 }
 
 function handleWheel() {
@@ -201,9 +206,16 @@ function loadComplete() {
   handleScroll();
 }
 
+function autoScrollToBottom() {
+  interval.value = setInterval(() => {
+    if (isAutoScroll.value) {
+      scrollToBottom();
+    }
+  }, 400);
+}
+
 async function init() {
   await nextTick();
-  await initMarked(MessageContentRef.value);
   MessageContentRef.value.addEventListener('scroll', handleScroll);
   window.addEventListener('wheel', handleWheel);
 }
@@ -213,18 +225,22 @@ onMounted(() => init());
 onBeforeUnmount(() => {
   MessageContentRef.value.removeEventListener('scroll', handleScroll);
   window.removeEventListener('wheel', handleWheel);
+  clearInterval(interval.value);
 });
-
-defineExpose({ scrollToBottom });
 
 watch(
   () => props.loading,
   val => {
     if (!val) {
+      clearInterval(interval.value);
       loadComplete();
+    } else {
+      autoScrollToBottom();
     }
   }
 );
+
+defineExpose({ scrollToBottom, RenderRef });
 </script>
 <style lang="scss">
 .message-container {
@@ -264,82 +280,94 @@ watch(
         word-break: break-word;
       }
     }
+  }
 
-    .answer-item-box {
-      .answer-meta {
-        display: flex;
-        margin-bottom: 8px;
-        gap: 4px;
-        align-items: baseline;
-        .model-code {
-          font-size: 18px;
-          color: #808695;
-        }
-        .create-time {
-          font-size: 12px;
-          color: #c5c8ce;
-        }
-      }
-    }
-
-    .cursor {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background-color: #dcdee2;
-      animation: blink 1s ease-in-out infinite;
-    }
-
-    .scroll-to-bottom {
-      position: absolute;
-      bottom: 200px;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(180deg);
-      .bottom-btn {
-        position: relative;
-        background: #f8f8f8;
+  .answer-item-box {
+    .answer-meta {
+      display: flex;
+      margin-bottom: 8px;
+      gap: 4px;
+      align-items: baseline;
+      .model-code {
+        font-size: 18px;
         color: #808695;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        border: 1px solid #e8eaec;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .create-time {
+        font-size: 12px;
+        color: #c5c8ce;
+      }
+    }
+  }
 
-        &.loading {
-          &::after {
-            content: '';
-            position: absolute;
-            background: url('../../../assets/images/loading.png') no-repeat center center;
-            background-size: 100% 100%;
-            width: 100%;
-            height: 100%;
-            animation: rotate 1s linear infinite;
-          }
+  .scroll-to-bottom {
+    position: absolute;
+    bottom: 200px;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(180deg);
+    .bottom-btn {
+      position: relative;
+      background: #f8f8f8;
+      color: #808695;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border: 1px solid #e8eaec;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+      &.loading {
+        &::after {
+          content: '';
+          position: absolute;
+          background: url('../../../assets/images/loading.png') no-repeat center center;
+          background-size: 100% 100%;
+          width: 100%;
+          height: 100%;
+          animation: rotate 1s linear infinite;
         }
       }
     }
+  }
 
-    @keyframes rotate {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
+  .cursor {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #dcdee2;
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  .current-render {
+    display: none;
+    &.stdin {
+      display: block;
     }
+  }
 
-    @keyframes blink {
-      0%,
-      100% {
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
+  .stop-response {
+    font-size: 14px;
+    line-height: 25px;
+  }
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
     }
   }
 }

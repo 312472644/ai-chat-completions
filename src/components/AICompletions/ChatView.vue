@@ -24,7 +24,12 @@
       <div class="function-area">
         <div class="left"></div>
         <div class="right">
-          <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
+          <div
+            v-if="!loading"
+            class="operation-btn"
+            :class="{ disabled: !question }"
+            @click="handleChat"
+          >
             <SvgIcon name="arrow_upward" size="20px" class="arrow" />
           </div>
           <div v-else class="operation-btn-stop" @click="handleStop">
@@ -36,12 +41,15 @@
   </div>
 </template>
 <script setup>
-import { ref, shallowRef, nextTick, watch } from 'vue';
+import { ref, shallowRef, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { message, Alert as AAlert } from 'ant-design-vue';
 import { Role } from './scripts/config.js';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { useStreamingMarkdown } from '@/composables/useStreamingMarkdown/index.js';
 
 import { Message } from './scripts/message.js';
+
+const emits = defineEmits(['finish']);
 
 const props = defineProps({
   /**
@@ -54,150 +62,100 @@ const props = defineProps({
 });
 
 // 对外暴露的消息对象
-const chatMessage = defineModel('modelValue', {
-  default: new Message(),
-});
+const chatMessage = defineModel('modelValue', { default: new Message() });
 // 对外暴露的loading状态
-const loading = defineModel('loading', {
-  default: false,
-});
+const loading = defineModel('loading', { default: false });
+// 对外暴露的状态
+const isRendering = defineModel('isRendering', { default: false });
 
-const isRequestAborted = ref(false);
 const question = ref('');
 const quoteText = ref('');
-const abortController = shallowRef(null);
 
-/**
- * 处理流式响应的每一行数据
- * @param {string} line - 流式响应的一行数据
- */
-function processLine(line) {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed === '[DONE]') return;
-
-  if (trimmed.startsWith('data:')) {
-    const dataStr = trimmed.slice(5).trim();
-    if (!dataStr || dataStr === '[DONE]') return;
-
-    try {
-      const parsed = JSON.parse(dataStr);
-      const contentChunk = parsed.choices?.[0]?.delta?.content;
-      if (contentChunk !== undefined && contentChunk !== null) {
-        chatMessage.value.currentMessage.markdown += contentChunk;
-        return;
-      }
-    } catch (e) {
-      console.debug('[Stream Parse Error]', e, 'Raw:', trimmed);
-    }
-  }
-}
-
-function getBodyParams(content) {
-  return JSON.stringify({
-    stream: true,
-    messages: [{ role: Role.USER, content }],
-  });
-}
+const streamMarkdown = ref({
+  isLoading: false,
+  error: '',
+  isAbort: false,
+  isRendering: false,
+  markdown: null,
+  fetchStream: () => {},
+  cancel: () => {},
+  release: () => {},
+});
 
 function getRenderContent() {
   const lastMessage = chatMessage.value.getLastMessage();
   if (!lastMessage) return '';
-  const id = lastMessage.id;
   // 获取当前正在渲染的markdown内容
-  const renderHTML = document.querySelector(`#${id} .markdown-output`)?.innerHTML || '';
-  return renderHTML.concat(isRequestAborted.value ? '\n\n 已停止响应。' : '');
+  const renderHTML = props.messageListRef?.RenderRef?.innerHTML || '';
+  return renderHTML.concat(
+    streamMarkdown.value.isAbort ? '\n\n <div class="stop-response">已停止响应。</div>' : ''
+  );
+}
+
+function addUserMsg() {
+  // 新增用户消息到消息列表
+  chatMessage.value.addUser({ content: question.value, quoteText: quoteText.value });
+  chatMessage.value.clearSuggestionList();
+  chatMessage.value.updateCurrentMessage({});
+}
+
+function addAssistantMsg() {
+  // 新增当前回复消息到消息列表
+  chatMessage.value.addAssistant({
+    markdown: streamMarkdown.value.markdown,
+    quoteText: quoteText.value,
+    content: getRenderContent(),
+    isAborted: streamMarkdown.value.isAbort,
+  });
+}
+
+function getBodyParams() {
+  return JSON.stringify({
+    stream: true,
+    messages: [{ role: Role.USER, content: question.value }],
+  });
 }
 
 async function beforeRequestChat() {
-  const content = question.value.trim();
-  const bodyParams = getBodyParams(content);
-  loading.value = true;
-  isRequestAborted.value = false;
-  // 新增用户消息到消息列表
-  chatMessage.value.addUser({ role: Role.USER, content, quoteText: quoteText.value });
-  chatMessage.value.clearSuggestionList();
-  abortController.value = new AbortController();
-
+  addUserMsg();
+  const bodyParams = getBodyParams();
   question.value = '';
-  await nextTick();
-  props.messageListRef.scrollToBottom(false);
   return bodyParams;
 }
 
 function finallyRequestChat() {
-  // 新增当前回复消息到消息列表
-  chatMessage.value.addAssistant({
-    role: Role.ASSISTANT,
-    markdown: chatMessage.value.currentMessage.markdown,
-    quoteText: quoteText.value,
-    content: getRenderContent(),
-    isAborted: isRequestAborted.value,
-  });
-  console.log('🚀 ~ finallyRequestChat ~ chatMessage:', chatMessage.value);
-  loading.value = false;
+  addAssistantMsg();
   chatMessage.value.clearCurrentMessage();
-}
-
-async function requestAI(bodyParams) {
-  const res = await fetch('/ai/api/v2/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
-    },
-    body: bodyParams,
-    signal: abortController.value.signal,
-  });
-
-  if (!res.ok) {
-    chatMessage.value.currentMessage.markdown += '\n\n 系统异常。';
-    return;
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    if (isRequestAborted.value) {
-      chatMessage.value.currentMessage.markdown += '\n\n已停止响应。';
-      break;
-    }
-
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
-    buffer = lines.pop();
-    for (const line of lines) {
-      processLine(line);
-    }
-  }
-
-  // 最后一块未处理完的行
-  if (buffer.trim()) {
-    processLine(buffer);
-  }
+  emits('finish', { error: streamMarkdown.value.error, chatMessage });
 }
 
 async function handleChat() {
   if (!question.value || loading.value) return;
   const bodyParams = await beforeRequestChat();
+  await nextTick();
+  await props.messageListRef.scrollToBottom(false);
+
   try {
-    await requestAI(bodyParams);
+    await streamMarkdown.value.fetchStream('/ai/api/v2/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:
+          'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
+      },
+      body: bodyParams,
+    });
   } catch (err) {
-    chatMessage.value.currentMessage.markdown += err.name === 'AbortError' ? '\n\n 已停止响应。' : '\n\n 未知异常。';
+    console.error('error', err);
   } finally {
     finallyRequestChat();
   }
 }
 
 function handleStop() {
-  abortController.value.abort();
-  isRequestAborted.value = true;
-  loading.value = false;
+  streamMarkdown.value.cancel();
   message.info('请求已终止');
+  setTimeout(() => props.messageListRef.scrollToBottom(false), 10);
 }
 
 async function refreshChat(text) {
@@ -206,9 +164,26 @@ async function refreshChat(text) {
 }
 
 function setQuoteText(text) {
-  console.log('🚀 ~ setQuoteText ~ text:', text);
   quoteText.value = text;
 }
+
+onMounted(async () => {
+  await nextTick();
+  streamMarkdown.value = useStreamingMarkdown(props.messageListRef.RenderRef);
+});
+
+onUnmounted(() => {
+  streamMarkdown.value?.release();
+});
+
+watch(
+  () => streamMarkdown.value,
+  val => {
+    loading.value = val.isLoading;
+    isRendering.value = val.isRendering;
+  },
+  { deep: true }
+);
 
 defineExpose({ refreshChat, setQuoteText });
 </script>
