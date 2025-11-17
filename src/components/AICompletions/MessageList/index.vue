@@ -18,11 +18,7 @@
             </div>
           </div>
           <!--已经完成的对话-->
-          <div
-            v-if="item[Role.ASSISTANT]?.content"
-            class="answer-item-box"
-            :id="item[Role.ASSISTANT].id"
-          >
+          <div v-if="item[Role.ASSISTANT]?.content" class="answer-item-box" :id="item[Role.ASSISTANT].id">
             <div class="answer-meta">
               <div class="model-code">{{ item[Role.ASSISTANT].modelCode }}</div>
               <div class="create-time">
@@ -52,7 +48,7 @@
           </div>
         </div>
         <div class="answer-content">
-          <div v-if="isRendering" class="cursor"></div>
+          <div v-if="isFCP" class="cursor"></div>
           <div ref="RenderRef" class="markdown-output"></div>
         </div>
       </div>
@@ -62,10 +58,7 @@
         </div>
       </div>
       <!--AI建议列表-->
-      <SuggestionList
-        :list="chatMessage.suggestionList"
-        @suggestion-click="item => $emit('suggestion-click', item)"
-      />
+      <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
     </div>
   </div>
   <!--删除按钮-->
@@ -75,10 +68,7 @@
     <AButton class="delete-item" type="primary" @click="handleDeleteSelected">删除选中</AButton>
   </div>
   <!--选中文字后菜单-->
-  <SelectedMenu
-    :MessageContentRef="MessageContentRef"
-    @quote-selected="text => $emit('quote-selected', text)"
-  />
+  <SelectedMenu :MessageContentRef="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
 </template>
 <script setup>
 import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch, shallowRef } from 'vue';
@@ -111,7 +101,8 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  isRendering: {
+  // 看到第一个文字是否渲染成功
+  isFCP: {
     type: Boolean,
     default: false,
   },

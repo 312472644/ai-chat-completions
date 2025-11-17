@@ -5,7 +5,7 @@
         ref="MessageListRef"
         :chat-message="chatMessage"
         :loading="loading"
-        :isRendering="isRendering"
+        :isFCP="isFCP"
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
         @delete="val => (isDeleteMode = val)"
@@ -16,7 +16,7 @@
         <ChatView
           ref="InputChatRef"
           v-model:loading="loading"
-          v-model:isRendering="isRendering"
+          v-model:isFCP="isFCP"
           v-model="chatMessage"
           :messageListRef="MessageListRef"
           @finish="handleFinish"
@@ -36,7 +36,7 @@ const MessageListRef = ref(null);
 
 const chatMessage = ref(new Message());
 const loading = ref(false);
-const isRendering = ref(false);
+const isFCP = ref(false);
 const InputChatRef = ref(null);
 const isDeleteMode = ref(false);
 

@@ -16,8 +16,8 @@ export function useStreamingMarkdown(containerDOM) {
   const error = ref(null);
   // 取消请求
   const controller = ref(null);
-  // 是否正在渲染
-  const isRendering = ref(false);
+  // 是否看见第一个内容
+  const isFCP = ref(false);
   // 是否终止请求
   const isAbort = ref(false);
   const markdown = shallowRef(null);
@@ -32,14 +32,14 @@ export function useStreamingMarkdown(containerDOM) {
     controller.value = new AbortController();
     isAbort.value = false;
     error.value = null;
-    isRendering.value = true;
+    isFCP.value = true;
     isLoading.value = true;
   };
 
   const afterFetch = () => {
     isLoading.value = false;
     controller.value = null;
-    isRendering.value = false;
+    isFCP.value = false;
   };
 
   /**
@@ -95,11 +95,10 @@ export function useStreamingMarkdown(containerDOM) {
           const htmlAll = parseMarkdown(markdownBuffer);
           requestAnimationFrame(() => {
             applyHtmlDiff(htmlAll, containerRef.value);
-            // 页面上看到第一个文字
-            if (isRendering.value) {
+            if (isFCP.value) {
               const dom = htmlToElement(htmlAll);
               if (dom) {
-                isRendering.value = dom.innerText.length === 0;
+                isFCP.value = dom.innerText.length === 0;
               }
             }
           });
@@ -144,7 +143,7 @@ export function useStreamingMarkdown(containerDOM) {
   return {
     isLoading,
     error,
-    isRendering,
+    isFCP,
     isAbort,
     markdown,
     fetchStream,

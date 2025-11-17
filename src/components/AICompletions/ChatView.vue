@@ -24,12 +24,7 @@
       <div class="function-area">
         <div class="left"></div>
         <div class="right">
-          <div
-            v-if="!loading"
-            class="operation-btn"
-            :class="{ disabled: !question }"
-            @click="handleChat"
-          >
+          <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
             <SvgIcon name="arrow_upward" size="20px" class="arrow" />
           </div>
           <div v-else class="operation-btn-stop" @click="handleStop">
@@ -66,7 +61,7 @@ const chatMessage = defineModel('modelValue', { default: new Message() });
 // 对外暴露的loading状态
 const loading = defineModel('loading', { default: false });
 // 对外暴露的状态
-const isRendering = defineModel('isRendering', { default: false });
+const isFCP = defineModel('isFCP', { default: false });
 
 const question = ref('');
 const quoteText = ref('');
@@ -75,7 +70,7 @@ const streamMarkdown = ref({
   isLoading: false,
   error: '',
   isAbort: false,
-  isRendering: false,
+  isFCP: false,
   markdown: null,
   fetchStream: () => {},
   cancel: () => {},
@@ -87,9 +82,7 @@ function getRenderContent() {
   if (!lastMessage) return '';
   // 获取当前正在渲染的markdown内容
   const renderHTML = props.messageListRef?.RenderRef?.innerHTML || '';
-  return renderHTML.concat(
-    streamMarkdown.value.isAbort ? '\n\n <div class="stop-response">已停止响应。</div>' : ''
-  );
+  return renderHTML.concat(streamMarkdown.value.isAbort ? '\n\n <div class="stop-response">已停止响应。</div>' : '');
 }
 
 function addUserMsg() {
@@ -140,8 +133,7 @@ async function handleChat() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization:
-          'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
+        Authorization: 'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
       },
       body: bodyParams,
     });
@@ -180,7 +172,7 @@ watch(
   () => streamMarkdown.value,
   val => {
     loading.value = val.isLoading;
-    isRendering.value = val.isRendering;
+    isFCP.value = val.isFCP;
   },
   { deep: true }
 );
