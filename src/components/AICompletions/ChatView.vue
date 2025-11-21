@@ -185,6 +185,7 @@ defineExpose({ refreshChat, setQuoteText });
   border-radius: 10px;
   padding: 0 12px;
   margin: 12px 0;
+  box-shadow: 0 1px 8px 0 rgba(25, 25, 25, 0.06);
 
   .input-box {
     color: #515a6e;

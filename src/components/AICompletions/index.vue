@@ -54,12 +54,12 @@ function handleFinish(data) {
 }
 
 async function init() {
-  // setTimeout(async () => {
-  //   chatMessage.value.messages = [...mockData];
-  //   // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
-  //   // await nextTick();
-  //   // MessageListRef.value.scrollToBottom(false);
-  // }, 500);
+  setTimeout(async () => {
+    chatMessage.value.messages = [...mockData];
+    // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
+    // await nextTick();
+    // MessageListRef.value.scrollToBottom(false);
+  }, 500);
 }
 
 onMounted(() => init());
@@ -77,6 +77,7 @@ onMounted(() => init());
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    padding: 12px;
 
     .input-container {
       max-width: $max-width;
