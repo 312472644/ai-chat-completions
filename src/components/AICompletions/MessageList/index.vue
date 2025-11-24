@@ -183,9 +183,10 @@ function handleScroll() {
 
 function scrollToBottom(isSmooth) {
   loadComplete();
-  setTimeout(() => {
+  setTimeout(async () => {
+    await nextTick();
     _scrollToBottom(MessageContentRef.value, isSmooth);
-  }, 0);
+  }, 400);
 }
 
 function handleWheel() {
@@ -202,7 +203,7 @@ function autoScrollToBottom() {
     if (isAutoScroll.value) {
       scrollToBottom();
     }
-  }, 400);
+  }, 500);
 }
 
 async function init() {

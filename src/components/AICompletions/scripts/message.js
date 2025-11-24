@@ -1,7 +1,7 @@
 import { formatTime, getUniqueid } from './utils.js';
 import { Role } from './config.js';
 
-const DEFAULT_MODEL_CODE = 'Qwen3-Max';
+const DEFAULT_MODEL_CODE = 'Qwen3';
 
 /**
  * 消息类

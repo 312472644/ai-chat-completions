@@ -6,7 +6,7 @@
         <span class="logo-text">AI</span>
       </div>
       <div class="operation">
-        <div v-if="!isSearchVisible" class="operation-item">
+        <div v-if="!isSearchVisible" class="icon-item">
           <a-tooltip placement="bottom">
             <template #title>
               <span>搜索</span>
@@ -14,19 +14,26 @@
             <SearchOutlined style="font-size: 18px" @click="isSearchVisible = !isSearchVisible" />
           </a-tooltip>
         </div>
-        <div class="operation-item">
+        <div class="icon-item" @click="handleToggleAside">
           <a-tooltip placement="bottom">
             <template #title>
               <span>收起侧边栏</span>
             </template>
-            <MenuFoldOutlined style="font-size: 18px" />
+            <SvgIcon name="shrink" style="font-size: 18px" />
           </a-tooltip>
         </div>
       </div>
     </div>
     <div class="aside-content">
       <div class="new-chat">
-        <a-button v-if="!isSearchVisible" block :icon="h(PlusOutlined)" @click="handleNewChat"> 新对话 </a-button>
+        <a-button
+          v-if="!isSearchVisible"
+          block
+          :icon="h(SvgIcon, { name: 'new_chat', style: 'margin-right: 4px' })"
+          @click="handleNewChat"
+        >
+          新对话
+        </a-button>
         <a-input
           v-else
           v-model="searchValue"
@@ -62,7 +69,38 @@
           >
             <div class="chat-text">{{ item.text }}</div>
             <div class="chat-icon">
-              <EllipsisOutlined style="font-size: 14px" />
+              <a-dropdown trigger="click">
+                <a class="ant-dropdown-link" @click.prevent>
+                  <EllipsisOutlined style="font-size: 14px" />
+                </a>
+                <template #overlay>
+                  <a-menu class="chat-menu">
+                    <a-menu-item>
+                      <view class="chat-menu-item">
+                        <PushpinOutlined />
+                        <span>置顶此对话</span>
+                      </view>
+                    </a-menu-item>
+                    <a-menu-item>
+                      <view class="chat-menu-item">
+                        <ControlOutlined />
+                        <span>批量管理</span>
+                      </view>
+                    </a-menu-item>
+                    <a-sub-menu key="session" title="导出会话" :icon="h(VerticalAlignBottomOutlined)">
+                      <a-menu-item>PDF</a-menu-item>
+                      <a-menu-item>Json</a-menu-item>
+                    </a-sub-menu>
+                    <div class="ant-dropdown-menu-item-separator"></div>
+                    <a-menu-item>
+                      <view class="chat-menu-item delete">
+                        <DeleteOutlined />
+                        <span>删除此对话</span>
+                      </view>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </div>
           </div>
         </div>
@@ -78,11 +116,25 @@ import {
   MenuUnfoldOutlined,
   PlusOutlined,
   EllipsisOutlined,
+  PushpinOutlined,
+  ControlOutlined,
+  DeleteOutlined,
+  VerticalAlignBottomOutlined,
 } from '@ant-design/icons-vue';
-import { Tooltip as ATooltip, Button as AButton, Input as AInput } from 'ant-design-vue';
+import {
+  Tooltip as ATooltip,
+  Button as AButton,
+  Input as AInput,
+  Dropdown as ADropdown,
+  Menu as AMenu,
+  MenuItem as AMenuItem,
+  SubMenu as ASubMenu,
+} from 'ant-design-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { userStore } from '@/store/userStore';
 
-const isSideBarCollapsed = ref(false);
+const emits = defineEmits(['toggleAside']);
+
 const isSearchVisible = ref(false);
 const searchValue = ref('');
 const chatItems = ref([
@@ -95,12 +147,17 @@ const chatItems = ref([
 ]);
 const activeChatItemIndex = ref(null);
 
+function handleToggleAside() {
+  // isSideBarCollapsed.value = !isSideBarCollapsed.value;
+  userStore.toggleSideBarCollapsed();
+}
+
 function handleNewChat() {
   console.log('新对话', searchValue.value);
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .aside-bar-container {
   height: 100%;
   width: 100%;
@@ -129,20 +186,6 @@ function handleNewChat() {
       display: flex;
       align-items: center;
       gap: 8px;
-
-      .operation-item {
-        font-size: 14px;
-        font-weight: 500;
-        padding: 4px;
-        border-radius: 4px;
-        color: #333;
-        cursor: pointer;
-        transition: all 0.3s ease-in-out;
-
-        &:hover {
-          background-color: #eaeaed;
-        }
-      }
     }
   }
 
@@ -194,6 +237,11 @@ function handleNewChat() {
           }
           .chat-icon {
             opacity: 0;
+            padding: 4px;
+            border-radius: 4px;
+            &:hover {
+              background-color: #e1e1e6;
+            }
           }
           &.active,
           &:hover {
@@ -205,6 +253,32 @@ function handleNewChat() {
         }
       }
     }
+  }
+}
+
+.chat-menu {
+  .ant-dropdown-menu-item {
+    &:has(.delete) {
+      &:hover {
+        background-color: #fff2f2;
+      }
+      .chat-menu-item {
+        color: #ff4d4f;
+      }
+    }
+  }
+  .ant-dropdown-menu-item-separator {
+    background: #f3f3f5;
+    height: 1px;
+    margin: 4px -4px;
+  }
+  .chat-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ant-dropdown-menu-item-icon {
+    margin-inline-end: 4px !important;
   }
 }
 </style>

@@ -12,6 +12,22 @@ html {
   height: 100%;
 }
 
+.icon-item {
+  font-weight: 500;
+  padding: 4px;
+  border-radius: 4px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  > svg {
+    font-size: 20px !important;
+  }
+
+  &:hover {
+    background-color: #eaeaed;
+  }
+}
+
 ::selection {
   background-color: #d6f5ff;
 }

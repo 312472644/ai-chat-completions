@@ -1,6 +1,6 @@
 <template>
   <div class="layout-container">
-    <aside class="aside-container">
+    <aside class="aside-container" :class="{ collapsed: isSideBarCollapsed }">
       <AsideBar />
     </aside>
     <main class="main-container">
@@ -14,6 +14,10 @@
 <script setup>
 import AsideBar from './aside-bar.vue';
 import TopBar from './top-bar.vue';
+import { computed, ref } from 'vue';
+import { userStore } from '@/store/userStore';
+
+const isSideBarCollapsed = computed(() => userStore.isSideBarCollapsed);
 </script>
 <style lang="scss">
 .layout-container {
@@ -26,6 +30,12 @@ import TopBar from './top-bar.vue';
     width: 256px;
     height: 100%;
     background-color: #f8f8f7;
+    transition: width 0.3s linear, opacity 0.2s linear;
+    &.collapsed {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
   }
   .main-container {
     flex: 1;
