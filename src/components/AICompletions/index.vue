@@ -69,7 +69,6 @@ onMounted(() => init());
 @use './markdown.scss';
 
 .ai-chat {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   $max-width: 896px;
   height: 100%;
   .chat-wrapper {
@@ -77,12 +76,12 @@ onMounted(() => init());
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 12px;
 
     .input-container {
       max-width: $max-width;
       margin: 0 auto;
       width: 100%;
+      padding: 0 12px;
     }
   }
 }

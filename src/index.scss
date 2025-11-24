@@ -26,3 +26,9 @@ html {
   background-color: #ccc;
   border-radius: 3px;
 }
+
+@media screen and (max-width: 896px) {
+  ::-webkit-scrollbar {
+    width: 0;
+  }
+}

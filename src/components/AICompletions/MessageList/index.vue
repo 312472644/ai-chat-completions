@@ -242,10 +242,11 @@ defineExpose({ scrollToBottom, RenderRef });
   .chat-list-container {
     margin: 0 auto;
     max-width: $max-width;
+    padding: 12px;
   }
 
   .chat-list {
-    padding: 12px 4px 0 0;
+    padding: 0;
     .chat-item {
       &.delete {
         background-color: #fafafb;
@@ -264,10 +265,11 @@ defineExpose({ scrollToBottom, RenderRef });
       .question-item {
         margin-left: auto;
         background-color: #f1f3f5;
-        padding: 10px 12px;
+        padding: 10px 15px;
         border-radius: 16px 0 16px 16px;
         margin-bottom: 8px;
         max-width: 50%;
+        font-size: 14px;
         word-break: break-word;
       }
     }
