@@ -15,12 +15,13 @@
           </a-tooltip>
         </div>
         <div class="icon-item" @click="handleToggleAside">
-          <a-tooltip placement="bottom">
+          <a-tooltip v-if="!isMobile" placement="bottom">
             <template #title>
               <span>收起侧边栏</span>
             </template>
             <SvgIcon name="shrink" style="font-size: 18px" />
           </a-tooltip>
+          <SvgIcon v-else name="shrink" style="font-size: 18px" />
         </div>
       </div>
     </div>
@@ -39,7 +40,7 @@ import { userStore } from '@/store/userStore';
 
 const emits = defineEmits(['toggleAside']);
 
-const { toggleSideBarCollapsed } = userStore();
+const { toggleSideBarCollapsed, isMobile } = userStore();
 const isSearchVisible = ref(false);
 const searchValue = ref('');
 

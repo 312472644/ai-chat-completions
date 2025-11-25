@@ -96,6 +96,38 @@ export function debounce(fn, delay = 1000) {
 }
 
 /**
+ * 函数节流
+ * @param {Function} fn
+ * @param {Number} delay
+ * @returns
+ */
+export function throttle(func, delay = 1000) {
+  let timer = null;
+  let lastExecTime = 0;
+  return function (...args) {
+    const now = Date.now();
+    const remaining = delay - (now - lastExecTime);
+
+    if (remaining <= 0 || remaining > delay) {
+      // 立即执行
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      func.apply(this, args);
+      lastExecTime = now;
+    } else if (!timer) {
+      // 延迟执行尾部
+      timer = setTimeout(() => {
+        func.apply(this, args);
+        lastExecTime = Date.now();
+        timer = null;
+      }, remaining);
+    }
+  };
+}
+
+/**
  * 将html元素字符串转化成dom元素
  * @param {string} htmlString
  * @returns

@@ -13,12 +13,23 @@
   </div>
 </template>
 <script setup>
+import useMediaQuery from '@/hooks/useMediaQuery';
+import { userStore } from '@/store/userStore';
+import { computed, ref, watch } from 'vue';
 import AsideBar from './aside-bar.vue';
 import TopBar from './top-bar.vue';
-import { computed, ref } from 'vue';
-import { userStore } from '@/store/userStore';
 
-const { isSideBarCollapsed, toggleSideBarCollapsed } = userStore();
+const { isSideBarCollapsed, toggleSideBarCollapsed, toggleMobile } = userStore();
+
+const isMobileQuery = useMediaQuery('(max-width: 768px)');
+
+watch(
+  () => isMobileQuery.value,
+  newValue => {
+    toggleMobile(newValue);
+  },
+  { immediate: true }
+);
 </script>
 <style lang="scss">
 .layout-container {

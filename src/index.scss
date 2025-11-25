@@ -64,6 +64,7 @@ html {
     z-index: 99;
     &.collapsed {
       opacity: 0;
+      z-index: -1;
     }
   }
 }
