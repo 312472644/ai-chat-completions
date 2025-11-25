@@ -1,8 +1,15 @@
-import { reactive } from 'vue';
+import { ref } from 'vue';
+import { createGlobalState } from '@/hooks/createGlobalState';
 
-export const userStore = reactive({
-  isSideBarCollapsed: false, // 侧边栏是否折叠
-  toggleSideBarCollapsed() {
-    this.isSideBarCollapsed = !this.isSideBarCollapsed;
-  },
+export const userStore = createGlobalState(() => {
+  const isSideBarCollapsed = ref(false);
+
+  const toggleSideBarCollapsed = () => {
+    isSideBarCollapsed.value = !isSideBarCollapsed.value;
+  };
+
+  return {
+    isSideBarCollapsed,
+    toggleSideBarCollapsed,
+  };
 });

@@ -11,7 +11,7 @@
             <template #title>
               <span>对话管理</span>
             </template>
-            <SvgIcon name="controls" style="font-size: 15px; color: #9393a2; cursor: pointer" />
+            <SvgIcon name="controls" style="font-size: 15px; color: #333; cursor: pointer" />
           </a-tooltip>
         </span>
       </div>

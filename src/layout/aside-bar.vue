@@ -39,11 +39,12 @@ import { userStore } from '@/store/userStore';
 
 const emits = defineEmits(['toggleAside']);
 
+const { toggleSideBarCollapsed } = userStore();
 const isSearchVisible = ref(false);
 const searchValue = ref('');
 
 function handleToggleAside() {
-  userStore.toggleSideBarCollapsed();
+  toggleSideBarCollapsed();
 }
 </script>
 

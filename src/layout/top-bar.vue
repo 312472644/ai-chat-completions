@@ -26,10 +26,10 @@ import SvgIcon from '@/components/SvgIcon/index.vue';
 import { Tooltip as ATooltip } from 'ant-design-vue';
 import { userStore } from '@/store/userStore';
 
-const isSideBarCollapsed = computed(() => userStore.isSideBarCollapsed);
+const { isSideBarCollapsed, toggleSideBarCollapsed } = userStore();
 
 const handleToggleAside = () => {
-  userStore.toggleSideBarCollapsed();
+  toggleSideBarCollapsed();
 };
 
 const handleNewChat = () => {
