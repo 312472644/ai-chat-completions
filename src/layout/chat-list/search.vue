@@ -35,10 +35,15 @@ const showSearch = defineModel('showSearch', {
   type: Boolean,
   default: false,
 });
+const searchChatItems = defineModel('modelValue', {
+  type: Array,
+  default: () => [],
+});
 
 const SearchInput = useTemplateRef('SearchInput');
 const searchValue = ref('');
 const isLoading = ref(false);
+// 默认历史项
 const chatItems = [
   { id: 1, text: 'Axios请求取消机制问题' },
   { id: 2, text: 'Vue项目开发技术问题咨询' },
@@ -47,11 +52,8 @@ const chatItems = [
   { id: 5, text: 'React项目路由配置问题' },
   { id: 6, text: 'Vue项目状态管理模式Vue项目状态管理模式' },
 ];
-const searchChatItems = defineModel('modelValue', {
-  type: Array,
-  default: () => [],
-});
-const debounceSearchChange = debounce(handleSearchChange, 500);
+
+const debounceSearchChange = debounce(handleSearchChange, 300);
 
 //TODO 搜索功能
 function handleSearchChange() {

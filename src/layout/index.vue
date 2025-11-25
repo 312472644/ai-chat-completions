@@ -9,6 +9,7 @@
         <slot></slot>
       </div>
     </main>
+    <div class="aside-container-mask" :class="{ collapsed: isSideBarCollapsed }" @click="handleMaskClick"></div>
   </div>
 </template>
 <script setup>
@@ -18,6 +19,11 @@ import { computed, ref } from 'vue';
 import { userStore } from '@/store/userStore';
 
 const isSideBarCollapsed = computed(() => userStore.isSideBarCollapsed);
+
+// 处理点击遮罩层关闭侧边栏
+function handleMaskClick() {
+  userStore.toggleSideBarCollapsed();
+}
 </script>
 <style lang="scss">
 .layout-container {
@@ -30,7 +36,7 @@ const isSideBarCollapsed = computed(() => userStore.isSideBarCollapsed);
     width: 256px;
     height: 100%;
     background-color: #f8f8f7;
-    transition: width 0.3s linear, opacity 0.2s linear;
+    transition: width 0.2s linear, opacity 0.2s linear;
     &.collapsed {
       opacity: 0;
       width: 0;

@@ -17,6 +17,7 @@
       </div>
       <div class="chat-list">
         <div
+          v-if="chatList.length"
           v-for="(item, index) in chatList"
           class="chat-item"
           :class="{ active: index === activeChatItemIndex }"
@@ -26,6 +27,9 @@
           <div class="chat-icon">
             <ChatItemDropdown />
           </div>
+        </div>
+        <div class="empty-item" v-else>
+          <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无对话记录" />
         </div>
       </div>
     </div>
@@ -42,6 +46,8 @@ import {
   Menu as AMenu,
   MenuItem as AMenuItem,
   SubMenu as ASubMenu,
+  Empty as AEmpty,
+  Empty,
 } from 'ant-design-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import ChatItemDropdown from './chat-item-dropdown.vue';
@@ -53,17 +59,6 @@ const showSearch = defineModel('isSearchVisible', {
 });
 
 const chatList = ref([]);
-// const SearchInput = useTemplateRef('SearchInput');
-// const searchValue = ref('');
-// const chatItems = [
-//   { id: 1, text: 'Axios请求取消机制问题' },
-//   { id: 2, text: 'Vue项目开发技术问题咨询' },
-//   { id: 3, text: 'React项目性能优化建议' },
-//   { id: 4, text: 'Vue项目组件化设计模式' },
-//   { id: 5, text: 'React项目路由配置问题' },
-//   { id: 6, text: 'Vue项目状态管理模式Vue项目状态管理模式' },
-// ];
-// const searchChatItems = ref(structuredClone(chatItems));
 const activeChatItemIndex = ref(null);
 </script>
 <style lang="scss">
@@ -122,6 +117,9 @@ const activeChatItemIndex = ref(null);
             opacity: 1;
           }
         }
+      }
+      .empty-item {
+        margin: 20px 0;
       }
     }
   }
