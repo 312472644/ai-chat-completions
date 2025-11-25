@@ -166,10 +166,12 @@ export function applyHtmlDiff(htmlAll, container) {
 
   if (!container || !cleanHtml.trim()) return;
 
+  // 使用临时容器承载最新完整 HTML，用于和现有 DOM 做差异对比
   const existing = container;
   const temp = document.createElement('div');
   temp.innerHTML = cleanHtml;
 
+  // 提取元素子节点序列（不包含纯文本节点），用于逐元素比对
   const oldChildren = Array.from(existing.children);
   const newChildren = Array.from(temp.children);
 
@@ -180,12 +182,12 @@ export function applyHtmlDiff(htmlAll, container) {
     i++;
   }
 
-  // 移除旧的多余节点
+  // 从第一个差异位置开始，移除旧容器的尾部节点，避免重建已一致的前缀
   while (existing.children.length > i) {
     existing.removeChild(existing.lastElementChild);
   }
 
-  // 追加新的节点
+  // 追加差异及新增节点（克隆插入，避免移动导致的副作用）
   for (let j = i; j < newChildren.length; j++) {
     existing.appendChild(newChildren[j].cloneNode(true));
   }

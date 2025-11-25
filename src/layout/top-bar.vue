@@ -17,6 +17,9 @@
           <SvgIcon name="new_chat" />
         </a-tooltip>
       </div>
+      <div class="model-item icon-item">
+        <Model />
+      </div>
     </div>
   </div>
 </template>
@@ -24,6 +27,8 @@
 import { computed } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { Tooltip as ATooltip } from 'ant-design-vue';
+import Model from './model/index.vue';
+
 import { userStore } from '@/store/userStore';
 
 const { isSideBarCollapsed, toggleSideBarCollapsed } = userStore();
@@ -47,6 +52,9 @@ const handleNewChat = () => {
     display: flex;
     align-items: center;
     gap: 8px;
+    .model-item {
+      font-size: 16px;
+    }
   }
 }
 </style>
