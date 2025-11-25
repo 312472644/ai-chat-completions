@@ -39,39 +39,14 @@ import { ref, computed } from 'vue';
 import { DownOutlined } from '@ant-design/icons-vue';
 import { Popover as APopover, Switch as ASwitch } from 'ant-design-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { ModelList } from '@/mock/index.js';
 
 const currentModel = ref('qwen3-max');
 const isTempChat = ref(false);
 const visible = ref(false);
 
 //TODO 从接口获取模型列表
-const modelList = ref([
-  {
-    modelName: 'Qwen3-Max',
-    modelCode: 'qwen3-max',
-    desc: '通义千问 Qwen3 最大模型，128K 上下文/128K 输出，擅长复杂推理、长文档处理与代码生成。',
-  },
-  {
-    modelName: 'Qwen3-Plus',
-    modelCode: 'qwen3-plus',
-    desc: '通义千问 Qwen3 均衡版，128K 上下文/64K 输出，兼顾性能与成本，适合通用创作与对话。',
-  },
-  {
-    modelName: 'Kimi-K2-0905',
-    modelCode: 'kimi-k2-0905',
-    desc: 'Moonshot Kimi K2-0905 高性价模型，128K 上下文/64K 输出，中文长文理解与检索总结表现优异。',
-  },
-  {
-    modelName: 'GPT-4.1',
-    modelCode: 'gpt-4.1',
-    desc: 'OpenAI GPT-4.1 高级通用模型，推理与创作能力强，支持较长上下文，适合复杂任务与工具调用。',
-  },
-  {
-    modelName: 'Gemini-1.5',
-    modelCode: 'gemini-1.5',
-    desc: 'Google Gemini 1.5 长上下文与多模态能力突出，适合检索增强与跨格式内容理解。',
-  },
-]);
+const modelList = ref(ModelList);
 
 const modelName = computed(() => {
   const model = modelList.value.find(item => item.modelCode === currentModel.value);

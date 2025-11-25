@@ -23,9 +23,14 @@
           :class="{ active: index === activeChatItemIndex }"
           @click="activeChatItemIndex = index"
         >
-          <div class="chat-text">{{ item.text }}</div>
+          <div class="chat-text">
+            <span class="text">{{ item.text }}</span>
+            <span v-if="item.isPinned" class="pin-icon">
+              <PushpinOutlined style="font-size: 14px" />
+            </span>
+          </div>
           <div class="chat-icon">
-            <ChatItemDropdown />
+            <ChatItemDropdown :item="item" :list="chatList" @pinned="handlePinned" />
           </div>
         </div>
         <div class="empty-item" v-else>
@@ -37,7 +42,7 @@
 </template>
 <script setup>
 import { ref, h, useTemplateRef, watch, nextTick } from 'vue';
-import { SearchOutlined, LoadingOutlined } from '@ant-design/icons-vue';
+import { SearchOutlined, LoadingOutlined, PushpinOutlined } from '@ant-design/icons-vue';
 import {
   Tooltip as ATooltip,
   Button as AButton,
@@ -60,14 +65,22 @@ const showSearch = defineModel('isSearchVisible', {
 
 const chatList = ref([]);
 const activeChatItemIndex = ref(null);
+
+function handlePinned({ activeIndex, list }) {
+  activeChatItemIndex.value = activeIndex;
+  chatList.value = list;
+}
 </script>
 <style lang="scss">
 .chat-list-box {
   height: 100%;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
   .chat-history {
     padding: 0 20px;
     overflow: auto;
+    flex: 1;
+    min-height: 0;
     .chat-title {
       display: flex;
       align-items: center;
@@ -94,6 +107,7 @@ const activeChatItemIndex = ref(null);
         cursor: pointer;
         transition: background-color 0.3s linear;
         .chat-text {
+          display: flex;
           font-size: 14px;
           color: #111133b3;
           flex: 1;
@@ -101,6 +115,12 @@ const activeChatItemIndex = ref(null);
           overflow: hidden;
           text-overflow: ellipsis;
           padding-right: 10px;
+          .text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
         }
         .chat-icon {
           opacity: 0;
@@ -117,6 +137,9 @@ const activeChatItemIndex = ref(null);
             opacity: 1;
           }
         }
+      }
+      .pin-icon {
+        margin-left: 4px;
       }
       .empty-item {
         margin: 20px 0;

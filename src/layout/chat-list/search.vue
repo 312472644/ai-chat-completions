@@ -30,6 +30,7 @@ import { Tooltip as ATooltip, Button as AButton, Input as AInput } from 'ant-des
 import ChatItemDropdown from './chat-item-dropdown.vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { debounce } from '@/utils';
+import { ChatHistory } from '@/mock/index.js';
 
 const showSearch = defineModel('showSearch', {
   type: Boolean,
@@ -44,14 +45,7 @@ const SearchInput = useTemplateRef('SearchInput');
 const searchValue = ref('');
 const isLoading = ref(false);
 // 默认历史项
-const chatItems = [
-  { id: 1, text: 'Axios请求取消机制问题' },
-  { id: 2, text: 'Vue项目开发技术问题咨询' },
-  { id: 3, text: 'React项目性能优化建议' },
-  { id: 4, text: 'Vue项目组件化设计模式' },
-  { id: 5, text: 'React项目路由配置问题' },
-  { id: 6, text: 'Vue项目状态管理模式Vue项目状态管理模式' },
-];
+const chatItems = structuredClone(ChatHistory);
 
 const debounceSearchChange = debounce(handleSearchChange, 300);
 
