@@ -1,18 +1,8 @@
 <template>
   <div class="ai-chat">
     <div class="chat-wrapper">
-      <MessageList
-        ref="MessageListRef"
-        :chat-message="chatMessage"
-        @refresh="handleSuggestionClick"
-        @suggestion-click="handleSuggestionClick"
-        @delete="val => (isDeleteMode = val)"
-        @quote-selected="handleQuoteSelectedText"
-      />
-      <!-- 输入 -->
-      <div v-show="!isDeleteMode" class="input-container">
-        <ChatView ref="InputChatRef" v-model="chatMessage" @finish="handleFinish" />
-      </div>
+      <MessageList :chat-message="chatMessage" />
+      <ChatView v-model="chatMessage" @finish="handleFinish" />
     </div>
   </div>
 </template>
@@ -24,32 +14,22 @@ import MessageList from './MessageList/index.vue';
 import mockData from './mock/mock-data.js';
 import { Message } from './scripts/message.js';
 
-const MessageListRef = ref(null);
-
 const chatMessage = ref(new Message());
-const InputChatRef = ref(null);
-const isDeleteMode = ref(false);
-
-function handleSuggestionClick(item) {
-  InputChatRef.value.refreshChat(item.text);
-}
-
-// 意见列表
-function handleQuoteSelectedText(text) {
-  InputChatRef.value.setQuoteText(text);
-}
 
 function handleFinish(data) {
   console.log('🚀 ~ 输出结果完成 ~ data:', data);
 }
 
 async function init() {
-  setTimeout(async () => {
-    chatMessage.value.messages = [...mockData];
-    // chatMessage.value.currentMessage.markdown = mockData[0].assistant.markdown;
-    // await nextTick();
-    // MessageListRef.value.scrollToBottom(false);
-  }, 500);
+  // setTimeout(async () => {
+  //   // chatMessage.value.messages = [...mockData];
+  //   // chatMessage.value.suggestionList = [
+  //   //   { text: '有哪些场景不适合使用wheel事件？' },
+  //   //   { text: '如何用touch事件替代wheel事件？' },
+  //   //   { text: 'wheel事件在移动端有哪些局限性？' },
+  //   // ];
+  //   // MessageListRef.value.scrollToBottom(false);
+  // }, 500);
 }
 
 onMounted(() => init());

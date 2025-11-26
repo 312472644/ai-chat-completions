@@ -37,7 +37,6 @@
               :item="item"
               :show-refresh="index === chatMessage.messages.length - 1"
               @delete="handleDelete"
-              @refresh="handleRefresh"
             />
           </div>
         </div>
@@ -64,7 +63,11 @@
         </div>
       </div>
       <!-- AI建议列表 -->
-      <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
+      <SuggestionList
+        v-if="chatMessage.suggestionList.length && !isDeleteMode"
+        style="margin-top: 10px"
+        :list="chatMessage.suggestionList"
+      />
     </div>
   </div>
   <!-- 删除按钮 -->
@@ -83,6 +86,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
 import { chatStore } from '@/store/chatStore.js';
+import emitter, { EventType } from '@/utils/emitter.js';
 import { Role } from '../scripts/config.js';
 import { scrollToBottom as toBottom } from '../scripts/utils.js';
 
@@ -96,8 +100,6 @@ const props = defineProps({
     default: () => {},
   },
 });
-
-const emits = defineEmits(['refresh', 'suggestion-click', 'delete', 'quote-selected']);
 
 const { loading, isFirstContentVisible, setRenderDomRef } = chatStore();
 
@@ -120,22 +122,6 @@ const showScrollButton = computed(() => {
     return showToBottomBtn.value;
   }
 });
-
-function handleRefresh() {
-  // 删除最后一条数据，重新请求
-  // eslint-disable-next-line vue/no-mutating-props
-  const lastItem = props.chatMessage.messages.splice(props.chatMessage.messages.length - 1, 1);
-  if (!lastItem.length) {
-    return;
-  }
-  const question = lastItem[0][Role.USER].content;
-  emits('refresh', { text: question });
-}
-
-function handleDelete() {
-  isDeleteMode.value = !isDeleteMode.value;
-  emits('delete', isDeleteMode.value);
-}
 
 // TODO 接口调用删除全部
 function handleDeleteAll() {
@@ -170,6 +156,14 @@ function handleDeleteSelected() {
       props.chatMessage.messages = props.chatMessage.messages.filter(item => !item.checked);
       handleDelete();
     },
+  });
+}
+
+function handleDelete() {
+  isDeleteMode.value = !isDeleteMode.value;
+  emitter.emit(EventType.DELETE, isDeleteMode.value);
+  nextTick(() => {
+    toBottom(MessageContentRef.value, false);
   });
 }
 
@@ -225,6 +219,7 @@ async function init() {
 onMounted(() => init());
 
 onBeforeUnmount(() => {
+  emitter.off(EventType.DELETE, handleDelete);
   MessageContentRef.value.removeEventListener('scroll', handleScroll);
   window.removeEventListener('wheel', handleWheel);
   clearInterval(interval.value);

@@ -1,34 +1,38 @@
 <template>
-  <div class="ai-input-container">
-    <div class="input-box">
-      <!-- 引用 -->
-      <div v-if="quoteText" class="quote-container">
-        <AAlert closable @close="quoteText = ''">
-          <template #message>
-            <div class="quote-message">
-              <span style="padding-right: 8px; font-weight: bold">引用</span>
-              <span class="quote-text">{{ quoteText }}</span>
+  <div v-if="!isDeleteMode" class="input-container">
+    <div class="ai-input-container">
+      <div class="input-box">
+        <!-- 引用 -->
+        <div v-if="quoteText" class="quote-container">
+          <AAlert closable @close="quoteText = ''">
+            <template #message>
+              <div class="quote-message">
+                <span style="padding-right: 8px; font-weight: bold">引用</span>
+                <span class="quote-text">{{ quoteText }}</span>
+              </div>
+            </template>
+          </AAlert>
+        </div>
+        <!-- 输入区域 -->
+        <div class="chat-textarea">
+          <textarea
+            v-model="question"
+            class="textarea"
+            :rows="4"
+            placeholder="请输入内容"
+            @keydown.enter.exact.prevent="handleChat"
+          />
+        </div>
+        <!-- 操作按钮 -->
+        <div class="function-area">
+          <div class="left" />
+          <div class="right">
+            <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
+              <SvgIcon name="arrow_upward" size="20px" class="arrow" />
             </div>
-          </template>
-        </AAlert>
-      </div>
-      <div class="chat-textarea">
-        <textarea
-          v-model="question"
-          class="textarea"
-          :rows="4"
-          placeholder="请输入内容"
-          @keydown.enter.exact.prevent="handleChat"
-        />
-      </div>
-      <div class="function-area">
-        <div class="left" />
-        <div class="right">
-          <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
-            <SvgIcon name="arrow_upward" size="20px" class="arrow" />
-          </div>
-          <div v-else class="operation-btn-stop" @click="handleStop">
-            <SvgIcon name="paused" size="32px" class="pause" />
+            <div v-else class="operation-btn-stop" @click="handleStop">
+              <SvgIcon name="paused" size="32px" class="pause" />
+            </div>
           </div>
         </div>
       </div>
@@ -42,10 +46,12 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { useStreamingMarkdown } from '@/composables/useStreamingMarkdown/index.js';
 import { chatStore } from '@/store/chatStore.js';
+import emitter, { EventType } from '@/utils/emitter.js';
 import { Role } from './scripts/config.js';
 
 import { Message } from './scripts/message.js';
 
+// 完成事件
 const emits = defineEmits(['finish']);
 
 // 对外暴露的消息对象
@@ -54,6 +60,7 @@ const { loading, renderDomRef, updateLoading, updateFirstContentVisible } = chat
 
 const question = ref('');
 const quoteText = ref('');
+const isDeleteMode = ref(false);
 
 const streamMarkdown = ref({
   isLoading: false,
@@ -138,34 +145,59 @@ function handleStop() {
   message.info('请求已终止');
 }
 
-async function refreshChat(text) {
+/**
+ * 重新生成。删除列表消息最后一条数据。重新请求。
+ * @param text 重新生成的文本
+ */
+async function handleRegenerate(text) {
+  // 删除列表消息最后一条数据
+  chatMessage.value.messages.pop();
   question.value = text;
   await handleChat();
 }
 
-function setQuoteText(text) {
-  quoteText.value = text;
+// 处理建议点击
+function handleSuggestion(text) {
+  question.value = text;
+  handleChat();
+}
+
+function handleDelete(val) {
+  isDeleteMode.value = val;
+}
+
+function eventListener() {
+  emitter.on(EventType.REGENERATE, handleRegenerate);
+  emitter.on(EventType.SUGGESTION, handleSuggestion);
+  emitter.on(EventType.DELETE, handleDelete);
 }
 
 onMounted(async () => {
   await nextTick();
+  eventListener();
   streamMarkdown.value = useStreamingMarkdown(renderDomRef.value);
 });
 
 onUnmounted(() => {
   streamMarkdown.value?.release();
+  emitter.off(EventType.REGENERATE, handleRegenerate);
+  emitter.off(EventType.SUGGESTION, handleSuggestion);
+  emitter.off(EventType.DELETE, handleDelete);
 });
 
 watch(
-  () => streamMarkdown.value,
+  () => streamMarkdown.value.isLoading,
   val => {
-    updateLoading(val.isLoading);
-    updateFirstContentVisible(val.isFCP);
-  },
-  { deep: true }
+    updateLoading(val);
+  }
 );
 
-defineExpose({ refreshChat, setQuoteText });
+watch(
+  () => streamMarkdown.value.isFCP,
+  val => {
+    updateFirstContentVisible(val);
+  }
+);
 </script>
 
 <style lang="scss">

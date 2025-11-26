@@ -30,11 +30,11 @@
     </div>
     <div v-if="showRefresh" class="item">
       <ATooltip title="重新生成">
-        <SvgIcon name="refresh" size="1em" @click="handleRefresh" />
+        <SvgIcon name="refresh" size="1em" @click="handleRegenerate" />
       </ATooltip>
     </div>
     <div class="item">
-      <APopover>
+      <APopover overlay-class-name="answer-tool-popover">
         <template #content>
           <div class="popover-content">
             <div class="popover-item" @click="handleDelete">
@@ -51,8 +51,10 @@
 
 <script setup>
 import { Popover as APopover, Tooltip as ATooltip, message } from 'ant-design-vue';
+import { onUnmounted } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
+import emitter, { EventType } from '@/utils/emitter';
 import { copyText } from '@/utils/index';
 
 const props = defineProps({
@@ -66,7 +68,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(['refresh', 'delete']);
+const emits = defineEmits(['delete']);
 
 function handleCopyMarkdown() {
   const markdown = props.item.assistant?.markdown || '';
@@ -89,9 +91,13 @@ function handleDelete() {
   emits('delete');
 }
 
-function handleRefresh() {
-  emits('refresh');
+function handleRegenerate() {
+  emitter.emit(EventType.REGENERATE, props.item.user.content);
 }
+
+onUnmounted(() => {
+  emitter.off(EventType.REGENERATE);
+});
 </script>
 
 <style lang="scss">
@@ -119,22 +125,27 @@ function handleRefresh() {
   }
 }
 
-.popover-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  .popover-item {
+.answer-tool-popover {
+  .ant-popover-inner {
+    padding: 8px !important;
+  }
+  .popover-content {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 4px;
-    font-size: 14px;
-    color: #111333;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease-in-out;
-    &:hover {
-      background-color: #f3f3f5;
-      cursor: pointer;
+    .popover-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      color: #111333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease-in-out;
+      &:hover {
+        background-color: #f3f3f5;
+        cursor: pointer;
+      }
     }
   }
 }

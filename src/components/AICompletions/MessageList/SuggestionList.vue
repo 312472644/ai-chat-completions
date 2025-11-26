@@ -7,6 +7,9 @@
 </template>
 
 <script setup>
+import { onUnmounted } from 'vue';
+import emitter, { EventType } from '@/utils/emitter';
+
 defineProps({
   list: {
     type: Array,
@@ -14,11 +17,13 @@ defineProps({
   },
 });
 
-const emits = defineEmits(['suggestion-click']);
-
 function handleSuggestionClick(item) {
-  emits('suggestion-click', item);
+  emitter.emit(EventType.SUGGESTION, item.text);
 }
+
+onUnmounted(() => {
+  emitter.off(EventType.SUGGESTION);
+});
 </script>
 
 <style lang="scss">

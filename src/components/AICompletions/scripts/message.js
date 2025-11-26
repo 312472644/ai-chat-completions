@@ -15,9 +15,9 @@ class BaseMessage {
     this.quoteText = '';
     // 模型编码
     this.modelCode = modelCode || DEFAULT_MODEL_CODE;
-    // 消息内容(用户输入或助手回复。 HTML格式或文本)
-    this.content = content;
-    // 助手回复的markdown格式
+    // 消息内容(用户输入或助手回复。 HTML格式或文本, markdown转换过来的)
+    this.content = content || '';
+    // markdown格式
     this.markdown = markdown;
     // 是否被中止
     this.isAborted = isAborted;
