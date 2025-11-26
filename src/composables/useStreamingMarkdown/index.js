@@ -118,7 +118,6 @@ export function useStreamingMarkdown(containerDOM) {
       if (err.name !== 'AbortError') {
         error.value = err.message || '请求失败';
       }
-      throw new Error(error.value);
     } finally {
       markdown.value = markdownBuffer;
       afterFetch();

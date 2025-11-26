@@ -4,8 +4,6 @@
       <MessageList
         ref="MessageListRef"
         :chat-message="chatMessage"
-        :loading="loading"
-        :is-f-c-p="isFCP"
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
         @delete="val => (isDeleteMode = val)"
@@ -13,14 +11,7 @@
       />
       <!-- 输入 -->
       <div v-show="!isDeleteMode" class="input-container">
-        <ChatView
-          ref="InputChatRef"
-          v-model:loading="loading"
-          v-model:is-f-c-p="isFCP"
-          v-model="chatMessage"
-          :message-list-ref="MessageListRef"
-          @finish="handleFinish"
-        />
+        <ChatView ref="InputChatRef" v-model="chatMessage" @finish="handleFinish" />
       </div>
     </div>
   </div>
@@ -36,8 +27,6 @@ import { Message } from './scripts/message.js';
 const MessageListRef = ref(null);
 
 const chatMessage = ref(new Message());
-const loading = ref(false);
-const isFCP = ref(false);
 const InputChatRef = ref(null);
 const isDeleteMode = ref(false);
 
@@ -73,6 +62,7 @@ onMounted(() => init());
   $max-width: 896px;
   height: 100%;
   .chat-wrapper {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;

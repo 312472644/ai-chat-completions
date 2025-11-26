@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { createGlobalState } from '@/hooks/createGlobalState';
+import { useState } from '@/hooks/useState';
 
 /**
  * 用户状态管理
@@ -10,22 +11,18 @@ import { createGlobalState } from '@/hooks/createGlobalState';
  * @property {Function} toggleMobile 切换移动设备状态
  */
 export const userStore = createGlobalState(() => {
+  // 是否为移动设备
+  const [isMobile, updateMobile] = useState(false);
   const isSideBarCollapsed = ref(false);
-  const isMobile = ref(false);
 
   const toggleSideBarCollapsed = () => {
     isSideBarCollapsed.value = !isSideBarCollapsed.value;
   };
 
-  const toggleMobile = val => {
-    console.log('🚀 ~ toggleMobile ~ val:', val);
-    isMobile.value = val;
-  };
-
   return {
     isMobile,
     isSideBarCollapsed,
-    toggleMobile,
+    toggleMobile: updateMobile,
     toggleSideBarCollapsed,
   };
 });

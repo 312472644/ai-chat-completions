@@ -53,10 +53,11 @@
           </div>
         </div>
         <div class="answer-content">
-          <div v-if="isFCP" class="cursor" />
+          <div v-if="isFirstContentVisible" class="cursor" />
           <div ref="RenderRef" class="markdown-output" />
         </div>
       </div>
+      <!-- 滚动到底部按钮 -->
       <div v-if="showScrollButton" class="scroll-to-bottom" @click="scrollToBottom">
         <div class="bottom-btn" :class="{ loading }">
           <SvgIcon name="arrow_upward" size="1em" class="arrow" />
@@ -81,8 +82,9 @@ import { Button as AButton, Checkbox as ACheckbox, message, Modal } from 'ant-de
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
+import { chatStore } from '@/store/chatStore.js';
 import { Role } from '../scripts/config.js';
-import { scrollToBottom as _scrollToBottom } from '../scripts/utils.js';
+import { scrollToBottom as toBottom } from '../scripts/utils.js';
 
 import AnswerTool from './AnswerTool.vue';
 import SelectedMenu from './SelectedMenu.vue';
@@ -93,30 +95,26 @@ const props = defineProps({
     type: Object,
     default: () => {},
   },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  // 看到第一个文字是否渲染成功
-  isFCP: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const emits = defineEmits(['refresh', 'suggestion-click', 'delete', 'quote-selected']);
 
+const { loading, isFirstContentVisible, setRenderDomRef } = chatStore();
+
+// 当前组件实例
 const MessageContentRef = ref(null);
+// 渲染区域DOM
 const RenderRef = ref(null);
 
 const showToBottomBtn = ref(false);
 // 是否自动滚动
 const isAutoScroll = ref(true);
+// 是否删除模式
 const isDeleteMode = ref(false);
 const interval = ref(false);
 
 const showScrollButton = computed(() => {
-  if (props.loading) {
+  if (loading.value) {
     return !isAutoScroll.value;
   } else {
     return showToBottomBtn.value;
@@ -139,6 +137,7 @@ function handleDelete() {
   emits('delete', isDeleteMode.value);
 }
 
+// TODO 接口调用删除全部
 function handleDeleteAll() {
   Modal.confirm({
     title: '提示',
@@ -153,6 +152,7 @@ function handleDeleteAll() {
   });
 }
 
+// TODO 接口调用删除选中
 function handleDeleteSelected() {
   const checkedItems = props.chatMessage.messages.filter(item => item.checked);
   if (!checkedItems.length) {
@@ -173,6 +173,9 @@ function handleDeleteSelected() {
   });
 }
 
+/**
+ * 滚动事件绑定
+ */
 function handleScroll() {
   const messageContentDOM = MessageContentRef.value;
   if (!messageContentDOM) {
@@ -187,10 +190,9 @@ function handleScroll() {
 
 function scrollToBottom(isSmooth) {
   loadComplete();
-  setTimeout(async () => {
-    await nextTick();
-    _scrollToBottom(MessageContentRef.value, isSmooth);
-  }, 400);
+  nextTick().then(() => {
+    toBottom(MessageContentRef.value, isSmooth);
+  });
 }
 
 function handleWheel() {
@@ -203,6 +205,9 @@ function loadComplete() {
 }
 
 function autoScrollToBottom() {
+  if (!isAutoScroll.value) {
+    return;
+  }
   interval.value = setInterval(() => {
     if (isAutoScroll.value) {
       scrollToBottom();
@@ -212,6 +217,7 @@ function autoScrollToBottom() {
 
 async function init() {
   await nextTick();
+  setRenderDomRef(RenderRef.value);
   MessageContentRef.value.addEventListener('scroll', handleScroll);
   window.addEventListener('wheel', handleWheel);
 }
@@ -225,18 +231,20 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  () => props.loading,
+  () => loading.value,
   val => {
     if (!val) {
       clearInterval(interval.value);
       loadComplete();
+      // 加载完成后，延时滚动到底部，底部可能还未加载完成
+      setTimeout(() => {
+        toBottom(MessageContentRef.value, true);
+      }, 100);
     } else {
       autoScrollToBottom();
     }
   }
 );
-
-defineExpose({ scrollToBottom, RenderRef });
 </script>
 
 <style lang="scss">

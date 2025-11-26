@@ -41,28 +41,16 @@ import { Alert as AAlert, message } from 'ant-design-vue';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { useStreamingMarkdown } from '@/composables/useStreamingMarkdown/index.js';
+import { chatStore } from '@/store/chatStore.js';
 import { Role } from './scripts/config.js';
 
 import { Message } from './scripts/message.js';
-
-const props = defineProps({
-  /**
-   * 消息列表引用
-   */
-  messageListRef: {
-    type: Object,
-    default: () => {},
-  },
-});
 
 const emits = defineEmits(['finish']);
 
 // 对外暴露的消息对象
 const chatMessage = defineModel('modelValue', { default: new Message() });
-// 对外暴露的loading状态
-const loading = defineModel('loading', { default: false });
-// 对外暴露的状态
-const isFCP = defineModel('isFCP', { default: false });
+const { loading, renderDomRef, updateLoading, updateFirstContentVisible } = chatStore();
 
 const question = ref('');
 const quoteText = ref('');
@@ -80,10 +68,11 @@ const streamMarkdown = ref({
 
 function getRenderContent() {
   const lastMessage = chatMessage.value.getLastMessage();
-  if (!lastMessage)
+  if (!lastMessage) {
     return '';
+  }
   // 获取当前正在渲染的markdown内容
-  const renderHTML = props.messageListRef?.RenderRef?.innerHTML || '';
+  const renderHTML = renderDomRef.value?.innerHTML || '';
   return renderHTML.concat(streamMarkdown.value.isAbort ? '\n\n <div class="stop-response">已停止响应。</div>' : '');
 }
 
@@ -125,11 +114,10 @@ function finallyRequestChat() {
 }
 
 async function handleChat() {
-  if (!question.value || loading.value)
+  if (!question.value || loading.value) {
     return;
+  }
   const bodyParams = await beforeRequestChat();
-  await nextTick();
-  await props.messageListRef.scrollToBottom(false);
 
   try {
     await streamMarkdown.value.fetchStream('/ai/api/v2/chat/completions', {
@@ -140,8 +128,6 @@ async function handleChat() {
       },
       body: bodyParams,
     });
-  } catch (err) {
-    console.error('error', err);
   } finally {
     finallyRequestChat();
   }
@@ -150,7 +136,6 @@ async function handleChat() {
 function handleStop() {
   streamMarkdown.value.cancel();
   message.info('请求已终止');
-  setTimeout(() => props.messageListRef.scrollToBottom(false), 10);
 }
 
 async function refreshChat(text) {
@@ -164,7 +149,7 @@ function setQuoteText(text) {
 
 onMounted(async () => {
   await nextTick();
-  streamMarkdown.value = useStreamingMarkdown(props.messageListRef.RenderRef);
+  streamMarkdown.value = useStreamingMarkdown(renderDomRef.value);
 });
 
 onUnmounted(() => {
@@ -174,8 +159,8 @@ onUnmounted(() => {
 watch(
   () => streamMarkdown.value,
   val => {
-    loading.value = val.isLoading;
-    isFCP.value = val.isFCP;
+    updateLoading(val.isLoading);
+    updateFirstContentVisible(val.isFCP);
   },
   { deep: true }
 );

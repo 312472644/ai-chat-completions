@@ -2,7 +2,7 @@
   <div class="aside-bar-container">
     <div class="aside-header">
       <div class="logo">
-        <img src="/robot.svg" alt="logo" style="width: 32px; height: 32px">
+        <img src="/robot.svg" alt="logo" style="width: 32px; height: 32px" />
         <span class="logo-text">AI</span>
       </div>
       <div class="operation">
@@ -40,6 +40,7 @@ import { userStore } from '@/store/userStore';
 import ChatList from './chat-list/index.vue';
 
 const { toggleSideBarCollapsed, isMobile } = userStore();
+
 const isSearchVisible = ref(false);
 
 function handleToggleAside() {
