@@ -5,11 +5,12 @@
     </div>
   </div>
 </template>
+
 <script setup>
 defineProps({
   list: {
     type: Array,
-    default: [],
+    default: () => [],
   },
 });
 
@@ -19,6 +20,7 @@ function handleSuggestionClick(item) {
   emits('suggestion-click', item);
 }
 </script>
+
 <style lang="scss">
 .suggestion-list {
   flex-direction: column;

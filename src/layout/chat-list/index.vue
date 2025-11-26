@@ -155,7 +155,6 @@ function handleDeleteChat(item) {
     content: '删除后将无法恢复，是否继续？',
     okText: '确认',
     cancelText: '取消',
-    okType: 'danger',
     onOk: () => {
       const index = historyChatList.value.findIndex(_ => _.id === item.id);
       if (index === -1) {

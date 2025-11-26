@@ -1,7 +1,7 @@
-import { nextTick, ref, shallowRef, watch, onMounted, onUnmounted } from 'vue';
-import { isIncompleteStructure, canSafelyPreview, applyHtmlDiff } from './utils';
-import { htmlToElement } from '@/utils/index';
+import { nextTick, ref, shallowRef, watch } from 'vue';
 import useMarked from '@/components/AICompletions/scripts/useMarked';
+import { htmlToElement } from '@/utils/index';
+import { applyHtmlDiff, canSafelyPreview, isIncompleteStructure } from './utils';
 
 /**
  * 流式渲染Markdown信息
@@ -45,7 +45,7 @@ export function useStreamingMarkdown(containerDOM) {
   /**
    * fetch请求
    * @param {string} url 请求地址
-   * @param {Object} params
+   * @param {object} params
    */
   const fetchStream = async (url, params = {}) => {
     beforeFetch();
@@ -56,14 +56,18 @@ export function useStreamingMarkdown(containerDOM) {
 
     try {
       const response = await fetch(url, { ...params, signal: controller.value.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
       while (!isStreamDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
 
         // 保证数据的完整性。并不是所有的数据刚好是处在\n换行处。有可文字被拆分
         rawBuffer += decoder.decode(value, { stream: true });
@@ -84,7 +88,7 @@ export function useStreamingMarkdown(containerDOM) {
               if (typeof content === 'string') {
                 markdownBuffer += content;
               }
-            } catch (e) {
+            } catch {
               console.warn('JSON parse error:', dataStr);
             }
           }
@@ -98,7 +102,7 @@ export function useStreamingMarkdown(containerDOM) {
             if (isFCP.value) {
               const dom = htmlToElement(htmlAll);
               if (dom) {
-                isFCP.value = dom.innerText.length === 0;
+                isFCP.value = dom.textContent.length === 0;
               }
             }
           });

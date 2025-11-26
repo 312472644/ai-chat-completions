@@ -1,6 +1,6 @@
 <template>
   <div class="model">
-    <a-popover overlayClassName="model-popover" :open="visible" placement="bottomLeft" trigger="click" :arrow="false">
+    <APopover overlay-class-name="model-popover" :open="visible" placement="bottomLeft" trigger="click" :arrow="false">
       <template #content>
         <div class="model-list">
           <div
@@ -10,8 +10,12 @@
             :class="{ active: item.modelCode === currentModel }"
             @click="handleModelChange(item.modelCode)"
           >
-            <div class="model-item-name">{{ item.modelName }}</div>
-            <div v-if="item.desc" class="model-item-desc">{{ item.desc }}</div>
+            <div class="model-item-name">
+              {{ item.modelName }}
+            </div>
+            <div v-if="item.desc" class="model-item-desc">
+              {{ item.desc }}
+            </div>
           </div>
         </div>
         <div class="model-footer">
@@ -20,7 +24,7 @@
             <span>临时对话</span>
           </div>
           <div class="right-icon">
-            <a-switch v-model:checked="isTempChat" size="small" @change="handleTempChatChange" />
+            <ASwitch v-model:checked="isTempChat" size="small" @change="handleTempChatChange" />
           </div>
         </div>
       </template>
@@ -31,13 +35,14 @@
         <span>{{ modelName }}</span>
         <DownOutlined style="font-size: 12px; margin-left: 4px" />
       </div>
-    </a-popover>
+    </APopover>
   </div>
 </template>
+
 <script setup>
-import { ref, computed } from 'vue';
 import { DownOutlined } from '@ant-design/icons-vue';
 import { Popover as APopover, Switch as ASwitch } from 'ant-design-vue';
+import { computed, ref } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { ModelList } from '@/mock/index.js';
 
@@ -45,7 +50,7 @@ const currentModel = ref('qwen3-max');
 const isTempChat = ref(false);
 const visible = ref(false);
 
-//TODO 从接口获取模型列表
+// TODO 从接口获取模型列表
 const modelList = ref(ModelList);
 
 const modelName = computed(() => {
@@ -64,6 +69,7 @@ function handleTempChatChange(checked) {
   visible.value = false;
 }
 </script>
+
 <style lang="scss">
 .model {
 }

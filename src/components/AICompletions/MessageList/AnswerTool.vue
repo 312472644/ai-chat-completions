@@ -48,13 +48,12 @@
     </div>
   </div>
 </template>
-<script setup>
-import { Popover as APopover, Tooltip as ATooltip } from 'ant-design-vue';
-import SvgIcon from '@/components/SvgIcon/index.vue';
-import { message } from 'ant-design-vue';
-import { copyText } from '@/utils/index';
 
-const emits = defineEmits(['refresh', 'delete']);
+<script setup>
+import { Popover as APopover, Tooltip as ATooltip, message } from 'ant-design-vue';
+import SvgIcon from '@/components/SvgIcon/index.vue';
+
+import { copyText } from '@/utils/index';
 
 const props = defineProps({
   item: {
@@ -67,6 +66,8 @@ const props = defineProps({
   },
 });
 
+const emits = defineEmits(['refresh', 'delete']);
+
 function handleCopyMarkdown() {
   const markdown = props.item.assistant?.markdown || '';
   copyText(markdown);
@@ -76,12 +77,11 @@ function handleCopyText() {
   const text = props.item.assistant?.content || '';
   const domParse = new DOMParser();
   const doc = domParse.parseFromString(text, 'text/html');
-  const plainText = doc.querySelector('body').innerText;
+  const plainText = doc.querySelector('body').textContent;
   copyText(plainText);
 }
 
-function handleProcessOpinion(type) {
-  console.log('🚀 ~ handleProcessOpinion ~ type:', type);
+function handleProcessOpinion() {
   message.warn('功能暂未实现');
 }
 
@@ -93,6 +93,7 @@ function handleRefresh() {
   emits('refresh');
 }
 </script>
+
 <style lang="scss">
 .answer-tool {
   display: flex;

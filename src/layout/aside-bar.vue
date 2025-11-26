@@ -2,7 +2,7 @@
   <div class="aside-bar-container">
     <div class="aside-header">
       <div class="logo">
-        <img src="/robot.svg" alt="logo" style="width: 32px; height: 32px" />
+        <img src="/robot.svg" alt="logo" style="width: 32px; height: 32px">
         <span class="logo-text">AI</span>
       </div>
       <div class="operation">
@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { SearchOutlined } from '@ant-design/icons-vue';
 import { Tooltip as ATooltip } from 'ant-design-vue';
-import { h, ref } from 'vue';
+import { ref } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { userStore } from '@/store/userStore';
 import ChatList from './chat-list/index.vue';

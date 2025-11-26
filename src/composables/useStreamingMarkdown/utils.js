@@ -3,10 +3,12 @@ import DOMPurify from 'dompurify';
 /**
  * 校验文本是否符合Markdown语法
  * @param {*} text
- * @returns {boolean}
+ * @returns {boolean} 是否符合Markdown语法
  */
 export function isIncompleteStructure(text) {
-  if (!text?.trim()) return false;
+  if (!text?.trim()) {
+    return false;
+  }
   const lines = text.split('\n');
 
   const hasOpenFence = (() => {
@@ -26,7 +28,9 @@ export function isIncompleteStructure(text) {
     }
     return inFence;
   })();
-  if (hasOpenFence) return true;
+  if (hasOpenFence) {
+    return true;
+  }
 
   const removeFences = ls => {
     let inFence = false;
@@ -44,7 +48,9 @@ export function isIncompleteStructure(text) {
         }
         continue;
       }
-      if (!inFence) out.push(ln);
+      if (!inFence) {
+        out.push(ln);
+      }
     }
     return out.join('\n');
   };
@@ -55,52 +61,75 @@ export function isIncompleteStructure(text) {
   const lastLineNoInlineCode = outsideLastLine.replace(/`[^`\n]*`/g, '');
 
   const inlineBacktickCount = (textNoInlineCode.match(/(?<!\\)`/g) || []).length;
-  if (inlineBacktickCount % 2 === 1) return true;
+  if (inlineBacktickCount % 2 === 1) {
+    return true;
+  }
 
   const lastLineMathCount = (lastLineNoInlineCode.match(/(?<!\\)\$/g) || []).length;
-  if (lastLineMathCount % 2 === 1) return true;
+  if (lastLineMathCount % 2 === 1) {
+    return true;
+  }
 
   const totalLb = (textNoInlineCode.match(/\[/g) || []).length;
-  const totalRb = (textNoInlineCode.match(/]/g) || []).length;
-  if (totalLb > totalRb) return true;
-  {
-    const rb = lastLineNoInlineCode.lastIndexOf(']');
-    if (rb !== -1) {
-      let balance = 0;
-      for (let i = rb + 1; i < lastLineNoInlineCode.length; i++) {
-        const ch = lastLineNoInlineCode[i];
-        const prev = lastLineNoInlineCode[i - 1];
-        if (ch === '(' && prev !== '\\') balance++;
-        else if (ch === ')' && prev !== '\\') balance--;
-        if (balance < 0) balance = 0;
-        if (balance === 0 && ch === ')' && prev !== '\\') break;
+  const totalRb = (textNoInlineCode.match(/\]/g) || []).length;
+  if (totalLb > totalRb) {
+    return true;
+  }
+  const rb = lastLineNoInlineCode.lastIndexOf(']');
+  if (rb !== -1) {
+    let balance = 0;
+    for (let i = rb + 1; i < lastLineNoInlineCode.length; i++) {
+      const ch = lastLineNoInlineCode[i];
+      const prev = lastLineNoInlineCode[i - 1];
+      if (ch === '(' && prev !== '\\') {
+        balance++;
+      } else if (ch === ')' && prev !== '\\') {
+        balance--;
       }
-      if (balance > 0) return true;
+      if (balance < 0) {
+        balance = 0;
+      }
+      if (balance === 0 && ch === ')' && prev !== '\\') {
+        break;
+      }
+    }
+    if (balance > 0) {
+      return true;
     }
   }
 
-  if (/<[A-Za-z][^>]*$/.test(lastLineNoInlineCode)) return true;
+  if (/<[A-Z][^>]*$/i.test(lastLineNoInlineCode)) {
+    return true;
+  }
   {
     const openIdx = textNoInlineCode.lastIndexOf('<!--');
     const closeIdx = textNoInlineCode.lastIndexOf('-->');
-    if (openIdx > closeIdx) return true;
+    if (openIdx > closeIdx) {
+      return true;
+    }
   }
 
   {
     const firstNonEmpty = lines.find(l => l.trim().length > 0);
     if (firstNonEmpty && /^\s*---\s*$/.test(firstNonEmpty)) {
       const hasClosing = lines.slice(1).some(l => /^\s*---\s*$/.test(l));
-      if (!hasClosing) return true;
+      if (!hasClosing) {
+        return true;
+      }
     }
   }
 
   {
     const inlineParenOpen = (lastLineNoInlineCode.match(/\\\(/g) || []).length;
     const inlineParenClose = (lastLineNoInlineCode.match(/\\\)/g) || []).length;
-    if (inlineParenOpen > inlineParenClose && !text.endsWith('\n')) return true;
+    if (inlineParenOpen > inlineParenClose && !text.endsWith('\n')) {
+      return true;
+    }
     const inlineBracketOpen = (lastLineNoInlineCode.match(/\\\[/g) || []).length;
     const inlineBracketClose = (lastLineNoInlineCode.match(/\\\]/g) || []).length;
-    if (inlineBracketOpen > inlineBracketClose && !text.endsWith('\n')) return true;
+    if (inlineBracketOpen > inlineBracketClose && !text.endsWith('\n')) {
+      return true;
+    }
   }
 
   return false;
@@ -109,10 +138,12 @@ export function isIncompleteStructure(text) {
 /**
  * 校验文本是否符合markdown表格或代码语法
  * @param {string} text
- * @returns {boolean}
+ * @returns {boolean} 是否符合markdown表格或代码语法
  */
 export function canSafelyPreview(text) {
-  if (!text.trim()) return false;
+  if (!text.trim()) {
+    return false;
+  }
 
   const lines = text.split('\n');
   const lastLine = lines[lines.length - 1].trim();
@@ -120,6 +151,7 @@ export function canSafelyPreview(text) {
   let inFence = false;
   let fenceType = null;
   for (const ln of lines) {
+    // eslint-disable-next-line regexp/no-useless-quantifier
     const m = ln.match(/^\s*(```|~~~)(\S*)?/);
     if (m) {
       if (!inFence) {
@@ -132,13 +164,14 @@ export function canSafelyPreview(text) {
     }
   }
 
+  // eslint-disable-next-line regexp/no-unused-capturing-group
   if (inFence && !/^\s*(```|~~~)/.test(lastLine)) {
     return true;
   }
 
   // 情况2：长表格（以 | 开头，且有表头分隔线）
-  const isLikelyTable =
-    lines.some(l => l.trim().startsWith('|')) && lines.some(l => /(\|[-:| ]+)+\|/.test(l)); // 包含分隔行
+  // eslint-disable-next-line regexp/no-unused-capturing-group, regexp/no-misleading-capturing-group
+  const isLikelyTable = lines.some(l => l.trim().startsWith('|')) && lines.some(l => /(\|[-:| ]+)+\|/.test(l)); // 包含分隔行
   if (isLikelyTable && lines.length > 3) {
     return true;
   }
@@ -150,7 +183,7 @@ export function canSafelyPreview(text) {
  * 增量更新容器里的内容
  * @param {string} htmlAll
  * @param {HTMLElement} container
- * @returns
+ * @returns {void}
  */
 export function applyHtmlDiff(htmlAll, container) {
   let cleanHtml = '';
@@ -164,7 +197,9 @@ export function applyHtmlDiff(htmlAll, container) {
     return;
   }
 
-  if (!container || !cleanHtml.trim()) return;
+  if (!container || !cleanHtml.trim()) {
+    return;
+  }
 
   // 使用临时容器承载最新完整 HTML，用于和现有 DOM 做差异对比
   const existing = container;

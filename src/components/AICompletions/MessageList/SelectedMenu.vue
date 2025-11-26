@@ -1,31 +1,31 @@
 <template>
-  <div class="selected-menu-container" ref="SelectedMenuRef">
+  <div ref="SelectedMenuRef" class="selected-menu-container">
     <div class="selected-menu">
       <div class="item" @click="handleQuoteSelectedText">
-        <SvgIcon name="quotation"></SvgIcon>
+        <SvgIcon name="quotation" />
         <span>引用</span>
       </div>
       <div class="item" @click="handleCopySelectedText">
-        <SvgIcon name="copy"></SvgIcon>
+        <SvgIcon name="copy" />
         <span>复制</span>
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
-import { message } from 'ant-design-vue';
-import { debounce, copyText } from '@/utils/index';
 import SvgIcon from '@/components/SvgIcon/index.vue';
-
-const emits = defineEmits(['quote-selected']);
+import { copyText, debounce } from '@/utils/index';
 
 const props = defineProps({
-  MessageContentRef: {
+  messageContentRef: {
     type: Object,
     default: () => {},
   },
 });
+
+const emits = defineEmits(['quote-selected']);
 
 const SelectedMenuRef = ref(null);
 const copySelectedText = ref(null);
@@ -33,11 +33,13 @@ const debounceShowSelectMenu = debounce(showSelectMenu, 500);
 
 /**
  * 获取选中文本的结束位置的矩形框
- * @returns {DOMRect} 选中文本的结束位置的矩形框
+ * @returns {DOMRect | null} 选中文本的结束位置的矩形框
  */
 function getEndOfSelectionRect() {
   const selection = window.getSelection();
-  if (selection.rangeCount === 0) return null;
+  if (selection.rangeCount === 0) {
+    return null;
+  }
 
   const range = selection.getRangeAt(0).cloneRange();
   range.collapse(false);
@@ -52,24 +54,28 @@ function getEndOfSelectionRect() {
 }
 
 function showSelectMenu(rect) {
-  const { left, top, width, height } = rect;
+  const { left, top, height } = rect;
   SelectedMenuRef.value.style.left = `${left - 5}px`;
   SelectedMenuRef.value.style.top = `${top + 8 + height}px`;
   SelectedMenuRef.value.style.display = 'block';
 }
 
-function handleSelectionChange(e) {
+function handleSelectionChange() {
   const selection = window.getSelection();
   const selectedText = selection.toString().trim();
 
   // 获取选区所在的 DOM 节点
   const container = selection.anchorNode?.parentElement;
 
-  if (props.MessageContentRef.contains(container) && selectedText) {
+  if (props.messageContentRef.contains(container) && selectedText) {
     const rangeCount = selection.rangeCount;
-    if (rangeCount === 0) return;
+    if (rangeCount === 0) {
+      return;
+    }
     const rect = getEndOfSelectionRect();
-    if (!rect) return;
+    if (!rect) {
+      return;
+    }
     copySelectedText.value = selectedText;
     debounceShowSelectMenu(rect);
   }
@@ -77,7 +83,9 @@ function handleSelectionChange(e) {
 
 function handleCopySelectedText() {
   const selectedText = copySelectedText.value;
-  if (!selectedText) return;
+  if (!selectedText) {
+    return;
+  }
   copyText(selectedText).finally(() => {
     SelectedMenuRef.value.style.display = 'none';
     copySelectedText.value = '';
@@ -86,7 +94,9 @@ function handleCopySelectedText() {
 
 function handleQuoteSelectedText() {
   const selectedText = copySelectedText.value;
-  if (!selectedText) return;
+  if (!selectedText) {
+    return;
+  }
   SelectedMenuRef.value.style.display = 'none';
   emits('quote-selected', selectedText);
 }
@@ -107,6 +117,7 @@ onUnmounted(() => {
   window.removeEventListener('click', handleWindowClick);
 });
 </script>
+
 <style lang="scss" scoped>
 .selected-menu-container {
   position: absolute;

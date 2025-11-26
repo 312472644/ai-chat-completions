@@ -1,11 +1,11 @@
-import { findParentElement } from '@/utils/index.js';
-import { HighlighterConfig } from '../config.js';
 import { message } from 'ant-design-vue';
-
-import CopySvg from '@/assets/svg/copy.svg?raw';
 import ArrowSvg from '@/assets/svg/arrow.svg?raw';
 import BedtimeSvg from '@/assets/svg/bedtime.svg?raw';
+
+import CopySvg from '@/assets/svg/copy.svg?raw';
 import LightSvg from '@/assets/svg/light_mode.svg?raw';
+import { findParentElement } from '@/utils/index.js';
+import { HighlighterConfig } from '../config.js';
 
 const globalInstance = { highlighter: null };
 
@@ -14,13 +14,13 @@ const globalInstance = { highlighter: null };
  * @param {HTMLElement} codeBlock
  */
 function handleCopyCode(codeBlock) {
-  const codeContent = codeBlock.querySelector('pre code')?.innerText || '';
+  const codeContent = codeBlock.querySelector('pre code')?.textContent || '';
   navigator.clipboard
     .writeText(codeContent)
     .then(() => {
       message.success('复制成功');
     })
-    .catch(err => {
+    .catch(() => {
       message.error('复制失败');
     });
 }
@@ -35,7 +35,7 @@ function handleToggleCodeTheme(target, codeBlock) {
   const lang = target.dataset.lang;
   target.dataset.theme = theme === 'light' ? 'dark' : 'light';
   target.innerHTML = theme === 'light' ? LightSvg : BedtimeSvg;
-  const html = globalInstance.highlighter.codeToHtml(codeBlock.querySelector('code').innerText, {
+  const html = globalInstance.highlighter.codeToHtml(codeBlock.querySelector('code').textContent, {
     lang,
     theme: theme === 'light' ? HighlighterConfig.theme.dark : HighlighterConfig.theme.light,
   });
@@ -57,14 +57,16 @@ function handleExpandCode(target, codeBlock) {
 
   codeContent.style.display = isDown ? 'none' : 'block';
   codeFooter.style.display = isDown ? 'flex' : 'none';
-  codeFooter.innerText = `已隐藏${codeLines}行代码`;
+  codeFooter.textContent = `已隐藏${codeLines}行代码`;
   target.dataset.collapse = isDown ? 'up' : 'down';
   target.classList.toggle('up');
 }
 
 function handleCodeEvent(e) {
   const target = findParentElement(e.target, '[data-copy], [data-theme], [data-collapse]');
-  if (!target) return;
+  if (!target) {
+    return;
+  }
   const codeBlock = e.target.closest('.custom-code-block');
   if (target.matches('[data-copy]')) {
     handleCopyCode(codeBlock);
@@ -79,7 +81,7 @@ function handleCodeEvent(e) {
  *  markdown code代码块自定义渲染
  * @param {Highlight} highlighter highlighter对象
  * @param {string} theme 主题
- * @returns {Function}
+ * @returns {Function} 代码块自定义渲染函数
  */
 export function rendererCode(highlighter, theme) {
   globalInstance.highlighter = highlighter;
@@ -107,8 +109,8 @@ export function rendererCode(highlighter, theme) {
 
 /**
  * 事件监听。通过监听容器元素（事件委托），实现对所有代码块的事件监听。
- * @param {*} containerDOM
- * @returns
+ * @param {*} containerDOM 代码块容器元素
+ * @returns {Function} 移除事件监听函数
  */
 export function codeEventListener(containerDOM) {
   containerDOM.addEventListener('click', handleCodeEvent);

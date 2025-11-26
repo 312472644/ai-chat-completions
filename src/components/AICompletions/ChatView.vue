@@ -1,7 +1,7 @@
 <template>
   <div class="ai-input-container">
     <div class="input-box">
-      <!--引用-->
+      <!-- 引用 -->
       <div v-if="quoteText" class="quote-container">
         <AAlert closable @close="quoteText = ''">
           <template #message>
@@ -14,15 +14,15 @@
       </div>
       <div class="chat-textarea">
         <textarea
-          class="textarea"
           v-model="question"
+          class="textarea"
           :rows="4"
-          @keydown.enter.exact.prevent="handleChat"
           placeholder="请输入内容"
-        ></textarea>
+          @keydown.enter.exact.prevent="handleChat"
+        />
       </div>
       <div class="function-area">
-        <div class="left"></div>
+        <div class="left" />
         <div class="right">
           <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
             <SvgIcon name="arrow_upward" size="20px" class="arrow" />
@@ -35,16 +35,15 @@
     </div>
   </div>
 </template>
+
 <script setup>
-import { ref, shallowRef, nextTick, watch, onMounted, onUnmounted } from 'vue';
-import { message, Alert as AAlert } from 'ant-design-vue';
-import { Role } from './scripts/config.js';
+import { Alert as AAlert, message } from 'ant-design-vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { useStreamingMarkdown } from '@/composables/useStreamingMarkdown/index.js';
+import { Role } from './scripts/config.js';
 
 import { Message } from './scripts/message.js';
-
-const emits = defineEmits(['finish']);
 
 const props = defineProps({
   /**
@@ -55,6 +54,8 @@ const props = defineProps({
     default: () => {},
   },
 });
+
+const emits = defineEmits(['finish']);
 
 // 对外暴露的消息对象
 const chatMessage = defineModel('modelValue', { default: new Message() });
@@ -79,7 +80,8 @@ const streamMarkdown = ref({
 
 function getRenderContent() {
   const lastMessage = chatMessage.value.getLastMessage();
-  if (!lastMessage) return '';
+  if (!lastMessage)
+    return '';
   // 获取当前正在渲染的markdown内容
   const renderHTML = props.messageListRef?.RenderRef?.innerHTML || '';
   return renderHTML.concat(streamMarkdown.value.isAbort ? '\n\n <div class="stop-response">已停止响应。</div>' : '');
@@ -123,7 +125,8 @@ function finallyRequestChat() {
 }
 
 async function handleChat() {
-  if (!question.value || loading.value) return;
+  if (!question.value || loading.value)
+    return;
   const bodyParams = await beforeRequestChat();
   await nextTick();
   await props.messageListRef.scrollToBottom(false);
@@ -133,7 +136,7 @@ async function handleChat() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
+        'Authorization': 'Bearer fastgpt-cLP2M3Sa3CdqkXj5i6EpInzRaKl7dmEyVc872BuwyxHLYqbUlPPF6c3B54Ws',
       },
       body: bodyParams,
     });
@@ -179,6 +182,7 @@ watch(
 
 defineExpose({ refreshChat, setQuoteText });
 </script>
+
 <style lang="scss">
 .ai-input-container {
   border: 1px solid #dcdee2;

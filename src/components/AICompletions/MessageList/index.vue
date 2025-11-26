@@ -3,13 +3,14 @@
     <div class="chat-list-container">
       <div v-if="chatMessage.messages.length" class="chat-list">
         <div
-          data-type="chat-item"
           v-for="(item, index) in chatMessage.messages"
-          :class="{ 'chat-item': true, delete: isDeleteMode, checked: item.checked }"
-          :key="index"
           :id="item.id"
+          :key="index"
+          data-type="chat-item"
+          class="chat-item"
+          :class="{ delete: isDeleteMode, checked: item.checked }"
         >
-          <div v-if="item[Role.USER]" class="question-item-box" :id="item[Role.USER].id">
+          <div v-if="item[Role.USER]" :id="item[Role.USER].id" class="question-item-box">
             <div v-if="isDeleteMode" class="question-meta">
               <ACheckbox v-model:checked="item.checked" />
             </div>
@@ -17,80 +18,75 @@
               {{ item[Role.USER].content }}
             </div>
           </div>
-          <!--已经完成的对话-->
-          <div v-if="item[Role.ASSISTANT]?.content" class="answer-item-box" :id="item[Role.ASSISTANT].id">
+          <!-- 已经完成的对话 -->
+          <div v-if="item[Role.ASSISTANT]?.content" :id="item[Role.ASSISTANT].id" class="answer-item-box">
             <div class="answer-meta">
-              <div class="model-code">{{ item[Role.ASSISTANT].modelCode }}</div>
+              <div class="model-code">
+                {{ item[Role.ASSISTANT].modelCode }}
+              </div>
               <div class="create-time">
                 {{ item[Role.ASSISTANT].createTime }}
               </div>
             </div>
             <div class="answer-content">
-              <!--历史记录-->
-              <div class="markdown-output" v-html="item[Role.ASSISTANT].content"></div>
+              <!-- 历史记录 -->
+              <div class="markdown-output" v-html="item[Role.ASSISTANT].content" />
             </div>
             <AnswerTool
               v-if="!isDeleteMode"
               :item="item"
-              :showRefresh="index === chatMessage.messages.length - 1"
+              :show-refresh="index === chatMessage.messages.length - 1"
               @delete="handleDelete"
               @refresh="handleRefresh"
             />
           </div>
         </div>
       </div>
-      <!--正在渲染的对话-->
+      <!-- 正在渲染的对话 -->
       <div class="current-render answer-item-box" :class="{ stdin: loading }">
         <div class="answer-meta">
-          <div class="model-code">{{ chatMessage.currentMessage.modelCode }}</div>
+          <div class="model-code">
+            {{ chatMessage.currentMessage.modelCode }}
+          </div>
           <div class="create-time">
             {{ chatMessage.currentMessage.createTime }}
           </div>
         </div>
         <div class="answer-content">
-          <div v-if="isFCP" class="cursor"></div>
-          <div ref="RenderRef" class="markdown-output"></div>
+          <div v-if="isFCP" class="cursor" />
+          <div ref="RenderRef" class="markdown-output" />
         </div>
       </div>
-      <div v-if="showScrollButton" @click="scrollToBottom" class="scroll-to-bottom">
-        <div class="bottom-btn" :class="{ loading: loading }">
+      <div v-if="showScrollButton" class="scroll-to-bottom" @click="scrollToBottom">
+        <div class="bottom-btn" :class="{ loading }">
           <SvgIcon name="arrow_upward" size="1em" class="arrow" />
         </div>
       </div>
-      <!--AI建议列表-->
+      <!-- AI建议列表 -->
       <SuggestionList :list="chatMessage.suggestionList" @suggestion-click="item => $emit('suggestion-click', item)" />
     </div>
   </div>
-  <!--删除按钮-->
+  <!-- 删除按钮 -->
   <div v-if="isDeleteMode" class="delete-container">
-    <AButton class="delete-item" @click="handleDelete">取消</AButton>
-    <AButton class="delete-item" @click="handleDeleteAll">删除全部</AButton>
-    <AButton class="delete-item" type="primary" @click="handleDeleteSelected">删除选中</AButton>
+    <AButton class="delete-item" @click="handleDelete"> 取消 </AButton>
+    <AButton class="delete-item" @click="handleDeleteAll"> 删除全部 </AButton>
+    <AButton class="delete-item" type="primary" @click="handleDeleteSelected"> 删除选中 </AButton>
   </div>
-  <!--选中文字后菜单-->
-  <SelectedMenu :MessageContentRef="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
+  <!-- 选中文字后菜单 -->
+  <SelectedMenu :message-content-ref="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
 </template>
-<script setup>
-import { computed, onMounted, ref, onBeforeUnmount, nextTick, watch, shallowRef } from 'vue';
-import {
-  Popover as APopover,
-  Tooltip as ATooltip,
-  Checkbox as ACheckbox,
-  Button as AButton,
-  message,
-  Modal,
-} from 'ant-design-vue';
-import SelectedMenu from './SelectedMenu.vue';
 
-import AnswerTool from './AnswerTool.vue';
-import SuggestionList from './SuggestionList.vue';
+<script setup>
+import { Button as AButton, Checkbox as ACheckbox, message, Modal } from 'ant-design-vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
 import { Role } from '../scripts/config.js';
-import useMarked from '../scripts/useMarked.js';
 import { scrollToBottom as _scrollToBottom } from '../scripts/utils.js';
 
-const emits = defineEmits(['refresh', 'suggestion-click', 'delete', 'quote-selected']);
+import AnswerTool from './AnswerTool.vue';
+import SelectedMenu from './SelectedMenu.vue';
+import SuggestionList from './SuggestionList.vue';
 
 const props = defineProps({
   chatMessage: {
@@ -108,8 +104,9 @@ const props = defineProps({
   },
 });
 
+const emits = defineEmits(['refresh', 'suggestion-click', 'delete', 'quote-selected']);
+
 const MessageContentRef = ref(null);
-const SelectedMenuRef = ref(null);
 const RenderRef = ref(null);
 
 const showToBottomBtn = ref(false);
@@ -126,12 +123,13 @@ const showScrollButton = computed(() => {
   }
 });
 
-const checkedItems = computed(() => props.chatMessage.messages.filter(item => item.checked));
-
 function handleRefresh() {
   // 删除最后一条数据，重新请求
+  // eslint-disable-next-line vue/no-mutating-props
   const lastItem = props.chatMessage.messages.splice(props.chatMessage.messages.length - 1, 1);
-  if (!lastItem.length) return;
+  if (!lastItem.length) {
+    return;
+  }
   const question = lastItem[0][Role.USER].content;
   emits('refresh', { text: question });
 }
@@ -148,6 +146,7 @@ function handleDeleteAll() {
     cancelText: '取消',
     okText: '确认',
     onOk: () => {
+      // eslint-disable-next-line vue/no-mutating-props
       props.chatMessage.messages = [];
       handleDelete();
     },
@@ -167,6 +166,7 @@ function handleDeleteSelected() {
     cancelText: '取消',
     okText: '确认',
     onOk: () => {
+      // eslint-disable-next-line vue/no-mutating-props
       props.chatMessage.messages = props.chatMessage.messages.filter(item => !item.checked);
       handleDelete();
     },
@@ -175,9 +175,13 @@ function handleDeleteSelected() {
 
 function handleScroll() {
   const messageContentDOM = MessageContentRef.value;
-  if (!messageContentDOM) return false;
+  if (!messageContentDOM) {
+    return;
+  }
   const { scrollTop, scrollHeight, clientHeight } = messageContentDOM;
-  if (!scrollTop) return;
+  if (!scrollTop) {
+    return;
+  }
   showToBottomBtn.value = scrollHeight - (scrollTop + clientHeight) > 0;
 }
 
@@ -234,6 +238,7 @@ watch(
 
 defineExpose({ scrollToBottom, RenderRef });
 </script>
+
 <style lang="scss">
 .message-container {
   flex: 1;
@@ -256,7 +261,10 @@ defineExpose({ scrollToBottom, RenderRef });
         border-radius: 10px;
       }
       &.checked {
-        box-shadow: 1px 1px 1px #ff4d4f, 0px -1px 1px #ff4d4f, -1px 0px 1px #ff4d4f;
+        box-shadow:
+          1px 1px 1px #ff4d4f,
+          0px -1px 1px #ff4d4f,
+          -1px 0px 1px #ff4d4f;
       }
     }
     .question-item-box {

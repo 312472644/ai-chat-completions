@@ -70,7 +70,7 @@ export function findParentElement(target, selector) {
  */
 export function copyText(text) {
   if (!text) {
-    return;
+    return Promise.resolve();
   }
 
   return navigator.clipboard

@@ -13,6 +13,8 @@ export default antfu({
         order: [['template', 'script'], 'style'],
       },
     ],
+    'vue/custom-event-name-casing': ['off', 'kebab-case'],
+    'vue/singleline-html-element-content-newline': 'off',
     'style/arrow-parens': 'off',
     'style/comma-dangle': 'off',
     'style/semi': 'off',

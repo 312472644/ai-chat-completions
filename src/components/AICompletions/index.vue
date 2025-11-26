@@ -5,32 +5,33 @@
         ref="MessageListRef"
         :chat-message="chatMessage"
         :loading="loading"
-        :isFCP="isFCP"
+        :is-f-c-p="isFCP"
         @refresh="handleSuggestionClick"
         @suggestion-click="handleSuggestionClick"
         @delete="val => (isDeleteMode = val)"
         @quote-selected="handleQuoteSelectedText"
-      ></MessageList>
-      <!--输入-->
+      />
+      <!-- 输入 -->
       <div v-show="!isDeleteMode" class="input-container">
         <ChatView
           ref="InputChatRef"
           v-model:loading="loading"
-          v-model:isFCP="isFCP"
+          v-model:is-f-c-p="isFCP"
           v-model="chatMessage"
-          :messageListRef="MessageListRef"
+          :message-list-ref="MessageListRef"
           @finish="handleFinish"
         />
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
-import { ref, computed, onMounted, shallowRef, nextTick, onUnmounted, onBeforeUnmount } from 'vue';
+import { onMounted, ref } from 'vue';
 import ChatView from './ChatView.vue';
 import MessageList from './MessageList/index.vue';
-import { Message } from './scripts/message.js';
 import mockData from './mock/mock-data.js';
+import { Message } from './scripts/message.js';
 
 const MessageListRef = ref(null);
 

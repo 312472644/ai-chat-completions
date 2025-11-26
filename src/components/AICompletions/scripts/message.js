@@ -1,5 +1,5 @@
-import { formatTime, getUniqueid } from './utils.js';
 import { Role } from './config.js';
+import { formatTime, getUniqueid } from './utils.js';
 
 const DEFAULT_MODEL_CODE = 'Qwen3';
 
@@ -33,7 +33,6 @@ class BaseMessage {
 class Message {
   /**
    * 构造器
-   * @param {BaseMessage} message
    */
   constructor() {
     // 当前渲染的消息
@@ -42,7 +41,7 @@ class Message {
       markdown: '',
       createTime: formatTime(new Date()),
     };
-    //TODO 每次回答完成后,更新建议列表
+    // TODO 每次回答完成后,更新建议列表
     this.suggestionList = [
       // { text: '有哪些场景不适合使用wheel事件？' },
       // { text: '如何用touch事件替代wheel事件？' },
@@ -51,13 +50,16 @@ class Message {
     // 消息列表
     this.messages = [];
   }
+
   /**
    * 更新当前消息
    * @param {BaseMessage} message 要更新的消息
-   * @returns
+   * @returns {void}
    */
   updateCurrentMessage(message) {
-    if (!message) return;
+    if (!message) {
+      return;
+    }
     const { modelCode = DEFAULT_MODEL_CODE, markdown } = message || {};
     this.currentMessage = {
       modelCode,
@@ -65,20 +67,25 @@ class Message {
       createTime: formatTime(new Date()),
     };
   }
+
   /**
    * 更新建议列表
    * @param {*} suggestionList
    */
   updateSuggestionList(suggestionList) {
-    if (!suggestionList || suggestionList.length === 0) return;
+    if (!suggestionList || suggestionList.length === 0) {
+      return;
+    }
     this.suggestionList = suggestionList;
   }
+
   /**
    * 清空建议列表
    */
   clearSuggestionList() {
     this.suggestionList = [];
   }
+
   /**
    * 清空当前消息
    */
@@ -90,12 +97,15 @@ class Message {
       suggestionList: [],
     };
   }
+
   /**
    * 添加消息
    * @param {BaseMessage} message
    */
   addUser(message) {
-    if (!message) return;
+    if (!message) {
+      return;
+    }
     const userMessage = new BaseMessage(message);
     const msg = {
       id: getUniqueid(),
@@ -104,13 +114,16 @@ class Message {
     };
     this.messages.push(msg);
   }
+
   /**
    * 添加助手消息
-   * @param {BaseMessage} message
-   * @returns
+   * @param {BaseMessage} message 助手消息
+   * @returns {void}
    */
   addAssistant(message) {
-    if (!message) return;
+    if (!message) {
+      return;
+    }
     const assistantMessage = new BaseMessage(message);
     assistantMessage.role = Role.ASSISTANT;
     assistantMessage.isAborted = message.isAborted;
@@ -120,33 +133,43 @@ class Message {
       this.messages[lastIndex].isAborted = assistantMessage.isAborted;
     }
   }
+
   /**
    * 获取最后一条消息
-   * @returns {BaseMessage}
+   * @returns {BaseMessage | null} 最后一条消息
    */
   getLastMessage() {
-    if (this.messages.length === 0) return null;
+    if (this.messages.length === 0) {
+      return null;
+    }
     return this.messages[this.messages.length - 1];
   }
+
   /**
    * 删除消息
    * @param {string} id
    */
   deleteItem(id) {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const index = this.messages.findIndex(item => item.id === id);
     if (index >= 0) {
       this.messages.splice(index, 1);
     }
   }
+
   /**
    * 批量删除消息
    * @param {string[]} ids
    */
   deleteItems(ids) {
-    if (!ids || ids.length === 0) return;
+    if (!ids || ids.length === 0) {
+      return;
+    }
     ids.forEach(id => this.deleteItem(id));
   }
+
   /**
    * 清空消息列表
    */

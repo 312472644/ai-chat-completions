@@ -47,7 +47,6 @@
 - **Marked**：一个 Markdown 解析器，用于将 Markdown 转换为 HTML。
 - **Highlight.js / Shiki**：用于代码语法高亮的库。
 
-
 ## 项目结构
 
 ```

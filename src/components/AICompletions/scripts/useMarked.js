@@ -1,17 +1,17 @@
-import { nextTick, shallowRef } from 'vue';
+import { Marked, Renderer } from 'marked';
 
 import { createHighlighter } from 'shiki';
-import { Marked, Renderer } from 'marked';
+import { nextTick, shallowRef } from 'vue';
 import { HighlighterConfig } from './config.js';
 
-import { rendererCode, codeEventListener } from './marked-renderer/code.js';
+import { codeEventListener, rendererCode } from './marked-renderer/code.js';
 import { rendererImage } from './marked-renderer/image.js';
 
 /**
  * 解析 markdown 文本
  */
 
-const useMarked = () => {
+function useMarked() {
   const marked = new Marked();
   const render = new Renderer();
 
@@ -34,10 +34,12 @@ const useMarked = () => {
   /**
    * 将markdown转化成html
    * @param {string} markdown
-   * @returns {string}
+   * @returns {string} 解析后的html
    */
   function parseMarkdown(markdown) {
-    if (!markdown) return '';
+    if (!markdown) {
+      return '';
+    }
     return marked.parse(markdown);
   }
 
@@ -80,6 +82,6 @@ const useMarked = () => {
     initMarked,
     parseMarkdown,
   };
-};
+}
 
 export default useMarked;
