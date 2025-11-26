@@ -3,11 +3,13 @@ import { message } from 'ant-design-vue';
 /**
  * 滚动至DOM元素最底部
  * @param {HTMLElement} target 目标元素
- * @param {Boolean} [isSmooth=true]  是否平滑滚动
- * @returns
+ * @param {boolean} [isSmooth]  是否平滑滚动
+ * @returns {void}
  */
 export function scrollToBottom(target, isSmooth = true) {
-  if (!target) return;
+  if (!target) {
+    return;
+  }
   target.scrollTo({
     top: target.scrollHeight,
     behavior: isSmooth ? 'smooth' : 'auto',
@@ -16,12 +18,12 @@ export function scrollToBottom(target, isSmooth = true) {
 
 /**
  * simple-uniqueid 生成唯一ID
- * @returns {String} 唯一ID
+ * @returns {string} 唯一ID
  */
 export function getUniqueid() {
-  const id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === 'x' ? r : (r & 0x3) | 0x8;
+  const id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
   return `xx-${id}`;
@@ -64,10 +66,12 @@ export function findParentElement(target, selector) {
 /**
  * 复制文本到剪贴板
  * @param {string} text 要复制的文本
- * @returns
+ * @returns {Promise<void>} 复制操作的Promise
  */
 export function copyText(text) {
-  if (!text) return;
+  if (!text) {
+    return;
+  }
 
   return navigator.clipboard
     .writeText(text)
@@ -82,13 +86,15 @@ export function copyText(text) {
 /**
  * 函数防抖
  * @param {Function} fn
- * @param {Number} delay
- * @returns
+ * @param {number} delay
+ * @returns {Function} 防抖函数
  */
 export function debounce(fn, delay = 1000) {
   let timer = null;
   return function (...args) {
-    if (timer) clearTimeout(timer);
+    if (timer) {
+      clearTimeout(timer);
+    }
     timer = setTimeout(() => {
       fn.apply(this, args);
     }, delay);
@@ -97,9 +103,9 @@ export function debounce(fn, delay = 1000) {
 
 /**
  * 函数节流
- * @param {Function} fn
- * @param {Number} delay
- * @returns
+ * @param {Function} func 要节流的函数
+ * @param {number} delay 节流时间间隔（毫秒）
+ * @returns {Function} 节流函数
  */
 export function throttle(func, delay = 1000) {
   let timer = null;
@@ -130,10 +136,34 @@ export function throttle(func, delay = 1000) {
 /**
  * 将html元素字符串转化成dom元素
  * @param {string} htmlString
- * @returns
+ * @returns {HTMLElement} dom元素
  */
 export function htmlToElement(htmlString) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlString, 'text/html');
   return doc.body;
+}
+
+/**
+ * 深拷贝对象
+ * @param {object} obj 要拷贝的对象
+ * @returns {object} 拷贝后的对象
+ */
+export function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(deepClone);
+  }
+
+  const clone = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      clone[key] = deepClone(obj[key]);
+    }
+  }
+
+  return clone;
 }

@@ -1,55 +1,54 @@
 <template>
-  <a-dropdown trigger="click">
+  <ADropdown trigger="click">
     <a class="ant-dropdown-link" @click.prevent>
       <EllipsisOutlined style="font-size: 14px" />
     </a>
     <template #overlay>
-      <a-menu class="chat-menu">
-        <a-menu-item>
+      <AMenu class="chat-menu">
+        <AMenuItem>
           <view class="chat-menu-item" @click="handlePinChat">
             <PushpinOutlined />
             <span>{{ props.item.isPinned ? '取消置顶' : '置顶此对话' }}</span>
           </view>
-        </a-menu-item>
-        <a-menu-item>
+        </AMenuItem>
+        <AMenuItem>
           <view class="chat-menu-item">
             <ControlOutlined />
             <span>批量管理</span>
           </view>
-        </a-menu-item>
-        <a-sub-menu key="session" title="导出会话" :icon="h(VerticalAlignBottomOutlined)">
-          <a-menu-item>PDF</a-menu-item>
-          <a-menu-item>Json</a-menu-item>
-        </a-sub-menu>
-        <div class="ant-dropdown-menu-item-separator"></div>
-        <a-menu-item>
-          <view class="chat-menu-item delete">
+        </AMenuItem>
+        <ASubMenu key="session" title="导出会话" :icon="h(VerticalAlignBottomOutlined)">
+          <AMenuItem>PDF</AMenuItem>
+          <AMenuItem>Json</AMenuItem>
+        </ASubMenu>
+        <div class="ant-dropdown-menu-item-separator" />
+        <AMenuItem>
+          <view class="chat-menu-item delete" @click="handleDeleteChat">
             <DeleteOutlined />
             <span>删除此对话</span>
           </view>
-        </a-menu-item>
-      </a-menu>
+        </AMenuItem>
+      </AMenu>
     </template>
-  </a-dropdown>
+  </ADropdown>
 </template>
+
 <script setup>
-import { h, defineEmits, watch } from 'vue';
 import {
-  EllipsisOutlined,
-  PushpinOutlined,
   ControlOutlined,
   DeleteOutlined,
+  EllipsisOutlined,
+  PushpinOutlined,
   VerticalAlignBottomOutlined,
 } from '@ant-design/icons-vue';
 import {
-  Tooltip as ATooltip,
   Dropdown as ADropdown,
   Menu as AMenu,
   MenuItem as AMenuItem,
   SubMenu as ASubMenu,
+  Tooltip as ATooltip,
 } from 'ant-design-vue';
-
-const emit = defineEmits(['pinned']);
+import { defineEmits, h, watch } from 'vue';
 
 const props = defineProps({
   item: {
@@ -63,6 +62,8 @@ const props = defineProps({
     default: () => [],
   },
 });
+
+const emit = defineEmits(['refresh']);
 
 let originList = [];
 
@@ -78,16 +79,22 @@ function sortList(list) {
   return list.toSorted((a, b) => {
     const aIndex = originList.findIndex(item => item.id === a.id);
     const bIndex = originList.findIndex(item => item.id === b.id);
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
+    if (a.isPinned && !b.isPinned) {
+      return -1;
+    }
+    if (!a.isPinned && b.isPinned) {
+      return 1;
+    }
     return aIndex - bIndex;
   });
 }
 
 function handlePinChat() {
   const originIndex = originList.findIndex(item => item.id === props.item.id);
-  if (originIndex === -1) return;
-  const list = (props.list || []).map((item, index) => {
+  if (originIndex === -1) {
+    return;
+  }
+  const list = (props.list || []).map(item => {
     if (item.id === props.item.id) {
       item.isPinned = !item.isPinned;
     }
@@ -95,7 +102,11 @@ function handlePinChat() {
   });
   const sortedList = sortList(list);
   const activeIndex = sortedList.findIndex(item => item.id === props.item.id);
-  emit('pinned', { activeIndex, list: sortedList });
+  emit('refresh', { activeIndex, list: sortedList });
+}
+
+function handleDeleteChat() {
+  emit('refresh', { list: [] });
 }
 
 watch(
@@ -104,12 +115,13 @@ watch(
     if (newVal.length > 0 && originList.length === 0) {
       // 初始化时，需要根据isPinned排序
       originList = [...newVal].map((item, index) => ({ ...item, index }));
-      emit('pinned', { activeIndex: null, list: sortList(originList) });
+      emit('refresh', { activeIndex: null, list: sortList(originList) });
     }
   },
   { immediate: true, deep: true }
 );
 </script>
+
 <style lang="scss">
 .ant-dropdown-menu-item {
   &:has(.delete) {

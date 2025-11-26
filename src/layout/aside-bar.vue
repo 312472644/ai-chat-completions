@@ -7,42 +7,40 @@
       </div>
       <div class="operation">
         <div v-if="!isSearchVisible" class="icon-item">
-          <a-tooltip placement="bottom">
+          <ATooltip placement="bottom">
             <template #title>
               <span>搜索</span>
             </template>
             <SearchOutlined style="font-size: 18px" @click="isSearchVisible = !isSearchVisible" />
-          </a-tooltip>
+          </ATooltip>
         </div>
         <div class="icon-item" @click="handleToggleAside">
-          <a-tooltip v-if="!isMobile" placement="bottom">
+          <ATooltip v-if="!isMobile" placement="bottom">
             <template #title>
               <span>收起侧边栏</span>
             </template>
             <SvgIcon name="shrink" style="font-size: 18px" />
-          </a-tooltip>
+          </ATooltip>
           <SvgIcon v-else name="shrink" style="font-size: 18px" />
         </div>
       </div>
     </div>
     <div class="aside-content">
-      <ChatList v-model:isSearchVisible="isSearchVisible" />
+      <ChatList v-model:is-search-visible="isSearchVisible" />
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
-import { h, ref } from 'vue';
 import { SearchOutlined } from '@ant-design/icons-vue';
 import { Tooltip as ATooltip } from 'ant-design-vue';
+import { h, ref } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
-import ChatList from './chat-list/index.vue';
 import { userStore } from '@/store/userStore';
-
-const emits = defineEmits(['toggleAside']);
+import ChatList from './chat-list/index.vue';
 
 const { toggleSideBarCollapsed, isMobile } = userStore();
 const isSearchVisible = ref(false);
-const searchValue = ref('');
 
 function handleToggleAside() {
   toggleSideBarCollapsed();

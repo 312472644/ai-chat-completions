@@ -6,16 +6,17 @@
     <main class="main-container">
       <TopBar />
       <div class="content-container">
-        <slot></slot>
+        <slot />
       </div>
     </main>
-    <div class="aside-container-mask" :class="{ collapsed: isSideBarCollapsed }" @click="toggleSideBarCollapsed"></div>
+    <div class="aside-container-mask" :class="{ collapsed: isSideBarCollapsed }" @click="toggleSideBarCollapsed" />
   </div>
 </template>
+
 <script setup>
+import { watch } from 'vue';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import { userStore } from '@/store/userStore';
-import { computed, ref, watch } from 'vue';
 import AsideBar from './aside-bar.vue';
 import TopBar from './top-bar.vue';
 
@@ -31,6 +32,7 @@ watch(
   { immediate: true }
 );
 </script>
+
 <style lang="scss">
 .layout-container {
   height: 100%;
@@ -42,7 +44,9 @@ watch(
     width: 256px;
     height: 100%;
     background-color: #f8f8f7;
-    transition: width 0.2s linear, opacity 0.2s linear;
+    transition:
+      width 0.2s linear,
+      opacity 0.2s linear;
     &.collapsed {
       opacity: 0;
       width: 0;
