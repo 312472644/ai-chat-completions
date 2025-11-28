@@ -57,6 +57,16 @@ export const sessionStore = createGlobalState(() => {
     setCurrentSessionId(null);
     persist();
   }
+
+  /**
+   * 更新会话列表
+   * @param {Session[]} newList 会话列表
+   */
+  function updateSessionList(newList) {
+    sessionList.value = [...newList];
+    persist();
+  }
+
   return {
     currentModel,
     setCurrentModel,
@@ -68,5 +78,6 @@ export const sessionStore = createGlobalState(() => {
     setIsTempSession,
     newChat,
     deleteSession,
+    updateSessionList,
   };
 });

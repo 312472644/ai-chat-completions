@@ -5,7 +5,7 @@
     </div>
     <div class="chat-history">
       <div class="chat-title">
-        <span class="title-text">最近对话</span>
+        <span class="title-text">{{ stickyText }}</span>
         <span>
           <ATooltip placement="bottom">
             <template #title>
@@ -25,7 +25,7 @@
         >
           <div class="chat-text">
             <span class="text" v-html="item.summary" />
-            <span v-if="item.isPinned" class="pin-icon">
+            <span v-if="item.top" class="pin-icon">
               <PushpinOutlined style="font-size: 14px" />
             </span>
           </div>
@@ -40,7 +40,7 @@
                     <view class="chat-menu-item" @click="() => handlePinChat(item)">
                       <PushpinOutlined />
                       <span>
-                        {{ item.isPinned ? '取消置顶' : '置顶此对话' }}
+                        {{ item.top ? '取消置顶' : '置顶此对话' }}
                       </span>
                     </view>
                   </AMenuItem>
@@ -103,7 +103,7 @@ const showSearch = defineModel('isSearchVisible', {
   default: () => false,
 });
 
-const { currentSessionId, setCurrentSessionId, deleteSession } = sessionStore();
+const { currentSessionId, setCurrentSessionId, deleteSession, updateSessionList } = sessionStore();
 const { deleteChatBySessionId } = chatStore();
 
 const modelList = ref([]);
@@ -113,6 +113,8 @@ const isSearchResult = ref(false);
 const sessionList = ref([]);
 // 原始列表，用于排序
 const originList = shallowRef([]);
+// 置顶对话的文本
+const stickyText = ref('置顶对话');
 
 /**
  * 置顶对话后，需要重新排序
@@ -125,10 +127,10 @@ function sortList(list, originList) {
   return list.toSorted((a, b) => {
     const aIndex = originList.findIndex(item => item.id === a.id);
     const bIndex = originList.findIndex(item => item.id === b.id);
-    if (a.isPinned && !b.isPinned) {
+    if (a.top && !b.top) {
       return -1;
     }
-    if (!a.isPinned && b.isPinned) {
+    if (!a.top && b.top) {
       return 1;
     }
     return aIndex - bIndex;
@@ -136,20 +138,17 @@ function sortList(list, originList) {
 }
 
 function handlePinChat(item) {
-  const originIndex = originList.value.findIndex(_ => _.id === item.id);
-  if (originIndex === -1) {
-    return;
-  }
   const list = (sessionList.value || []).map(_ => {
     if (_.id === item.id) {
-      _.isPinned = !_.isPinned;
+      _.top = !_.top;
     }
     return _;
   });
   const sortedList = sortList(list, originList.value);
   const activeItem = sortedList.find(_ => item.id === _.id);
-  setCurrentSessionId(activeItem.id);
   sessionList.value = sortedList;
+  setCurrentSessionId(activeItem.id);
+  updateSessionList(sortedList);
 }
 
 function handleDeleteChat(item) {
@@ -167,7 +166,6 @@ function handleDeleteChat(item) {
       deleteSession(item.id);
       // 删除对应的对话记录
       deleteChatBySessionId(item.id);
-      // chatList.value = chatList.value.filter(_ => _.sessionId !== item.id);
     },
   });
 }
@@ -176,11 +174,9 @@ watch(
   () => modelList.value,
   newVal => {
     if (newVal.length > 0 && originList.value.length === 0) {
-      originList.value = [...modelList.value].map((item, index) => ({ ...item, index }));
-      sessionList.value = sortList(modelList.value, originList.value);
-    } else {
-      sessionList.value = deepClone([...newVal]);
+      originList.value = newVal.map((item, index) => ({ ...item, index }));
     }
+    sessionList.value = deepClone(sortList(newVal || [], originList.value || []));
   },
   { deep: true }
 );
@@ -214,7 +210,10 @@ watch(
       position: sticky;
       top: 0;
       height: 34px;
+      line-height: 34px;
       background: #f8f8f7;
+      margin: 0 -12px;
+      padding: 0 12px;
       .title-text {
         font-size: 13px;
         color: #1111334d;
