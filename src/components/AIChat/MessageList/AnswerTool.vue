@@ -1,6 +1,6 @@
 <template>
   <div class="answer-tool">
-    <APopover>
+    <APopover overlay-class-name="answer-tool-popover">
       <template #content>
         <div class="popover-content">
           <div class="popover-item" @click="handleCopyMarkdown">
@@ -13,22 +13,22 @@
           </div>
         </div>
       </template>
-      <div class="item">
+      <div v-if="item.canCopy" class="item">
         <SvgIcon name="copy" size="1.2em" />
         <SvgIcon name="arrow" size="1em" class="arrow" />
       </div>
     </APopover>
-    <div class="item">
+    <div v-if="item.canFeedback" class="item">
       <ATooltip title="点赞">
         <SvgIcon name="agree" size="1em" @click="handleProcessOpinion('agree')" />
       </ATooltip>
     </div>
-    <div class="item">
+    <div v-if="item.canFeedback" class="item">
       <ATooltip title="点踩">
         <SvgIcon name="disagree" size="1em" @click="handleProcessOpinion('disagree')" />
       </ATooltip>
     </div>
-    <div v-if="showRefresh" class="item">
+    <div v-if="item.canRegenerate && showRefresh" class="item">
       <ATooltip title="重新生成">
         <SvgIcon name="refresh" size="1em" @click="handleRegenerate" />
       </ATooltip>
@@ -43,22 +43,27 @@
             </div>
           </div>
         </template>
-        <SvgIcon name="more" size="1em" />
+        <SvgIcon v-if="item.canDelete" name="more" size="1em" />
       </APopover>
     </div>
   </div>
 </template>
 
 <script setup>
-import { Popover as APopover, Tooltip as ATooltip, message } from 'ant-design-vue';
+import { Popover as APopover, Tooltip as ATooltip, message, Modal } from 'ant-design-vue';
 import { onUnmounted } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { htmlToElement } from '@/utils';
 
 import emitter, { EventType } from '@/utils/emitter';
 import { copyText } from '@/utils/index';
 
 const props = defineProps({
   item: {
+    type: Object,
+    default: () => ({}),
+  },
+  userItem: {
     type: Object,
     default: () => ({}),
   },
@@ -71,15 +76,12 @@ const props = defineProps({
 const emits = defineEmits(['delete']);
 
 function handleCopyMarkdown() {
-  const markdown = props.item.assistant?.markdown || '';
-  copyText(markdown);
+  copyText(props.item.content);
 }
 
 function handleCopyText() {
-  const text = props.item.assistant?.content || '';
-  const domParse = new DOMParser();
-  const doc = domParse.parseFromString(text, 'text/html');
-  const plainText = doc.querySelector('body').textContent;
+  const text = props.item.renderHTML || '';
+  const plainText = htmlToElement(text).textContent;
   copyText(plainText);
 }
 
@@ -92,7 +94,15 @@ function handleDelete() {
 }
 
 function handleRegenerate() {
-  emitter.emit(EventType.REGENERATE, props.item.user.content);
+  Modal.confirm({
+    title: '提示',
+    content: '确认重新生成后，当前消息将被删除。',
+    cancelText: '取消',
+    okText: '确认',
+    onOk: () => {
+      emitter.emit(EventType.REGENERATE, props.userItem.content);
+    },
+  });
 }
 
 onUnmounted(() => {

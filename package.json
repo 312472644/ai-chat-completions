@@ -8,8 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js",
-    "lint:fix": "eslint . --ext .vue,.js --fix",
-    "format": "prettier --write ."
+    "lint:fix": "eslint . --ext .vue,.js --fix"
   },
   "dependencies": {
     "ant-design-vue": "^4.2.6",

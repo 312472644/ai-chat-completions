@@ -28,19 +28,3 @@ export const ModelList = [
     desc: 'Google Gemini 1.5 长上下文与多模态能力突出，适合检索增强与跨格式内容理解。',
   },
 ];
-
-/**
- * 聊天记录列表
- */
-export const ChatHistory = [
-  { id: 1, isPinned: false, text: 'Axios请求取消机制问题' },
-  { id: 2, isPinned: false, text: 'Vue项目开发技术问题咨询' },
-  { id: 3, isPinned: true, text: 'React项目性能优化建议' },
-  { id: 4, isPinned: false, text: 'Vue项目组件化设计模式' },
-  { id: 5, isPinned: false, text: 'React项目路由配置问题' },
-  { id: 6, isPinned: false, text: 'Vue项目状态管理模式Vue项目状态管理模式' },
-  { id: 7, isPinned: false, text: 'React项目状态管理模式' },
-  { id: 8, isPinned: false, text: 'Vue项目状态管理模式' },
-  { id: 9, isPinned: false, text: 'Vue diff算法' },
-  { id: 10, isPinned: false, text: 'React diff算法' },
-];

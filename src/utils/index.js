@@ -167,3 +167,15 @@ export function deepClone(obj) {
 
   return clone;
 }
+
+/**
+ * 判断一个值是否不为空对象
+ * @param {string | object} val 要判断的值
+ * @returns {boolean} 是否为空对象
+ */
+export function isNotEmptyObject(val) {
+  if (typeof val !== 'object' || val === null) {
+    return false;
+  }
+  return Object.keys(val).length > 0;
+}

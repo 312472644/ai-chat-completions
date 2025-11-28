@@ -15,16 +15,16 @@
           </ATooltip>
         </span>
       </div>
-      <div v-if="historyChatList.length" class="chat-list">
+      <div v-if="sessionList.length" class="chat-list">
         <div
-          v-for="(item, index) in historyChatList"
+          v-for="item in sessionList"
           :key="item.id"
           class="chat-item"
-          :class="{ active: index === activeChatItemIndex }"
-          @click="activeChatItemIndex = index"
+          :class="{ active: item.id === currentSessionId }"
+          @click="() => setCurrentSessionId(item.id)"
         >
           <div class="chat-text">
-            <span class="text" v-html="item.text" />
+            <span class="text" v-html="item.summary" />
             <span v-if="item.isPinned" class="pin-icon">
               <PushpinOutlined style="font-size: 14px" />
             </span>
@@ -94,6 +94,7 @@ import {
 } from 'ant-design-vue';
 import { h, ref, shallowRef, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { chatStore, sessionStore } from '@/store/index';
 import { deepClone } from '@/utils';
 import Search from './search.vue';
 
@@ -102,14 +103,16 @@ const showSearch = defineModel('isSearchVisible', {
   default: () => false,
 });
 
+const { currentSessionId, setCurrentSessionId, deleteSession } = sessionStore();
+const { deleteChatBySessionId } = chatStore();
+
 const modelList = ref([]);
 // 是否搜索结果（搜索结果不展示菜单）
 const isSearchResult = ref(false);
 // 历史对话列表，用于展示
-const historyChatList = ref([]);
+const sessionList = ref([]);
 // 原始列表，用于排序
 const originList = shallowRef([]);
-const activeChatItemIndex = ref(null);
 
 /**
  * 置顶对话后，需要重新排序
@@ -137,16 +140,16 @@ function handlePinChat(item) {
   if (originIndex === -1) {
     return;
   }
-  const list = (historyChatList.value || []).map(_ => {
+  const list = (sessionList.value || []).map(_ => {
     if (_.id === item.id) {
       _.isPinned = !_.isPinned;
     }
     return _;
   });
   const sortedList = sortList(list, originList.value);
-  const activeIndex = sortedList.findIndex(_ => item.id === _.id);
-  activeChatItemIndex.value = activeIndex;
-  historyChatList.value = sortedList;
+  const activeItem = sortedList.find(_ => item.id === _.id);
+  setCurrentSessionId(activeItem.id);
+  sessionList.value = sortedList;
 }
 
 function handleDeleteChat(item) {
@@ -156,11 +159,15 @@ function handleDeleteChat(item) {
     okText: '确认',
     cancelText: '取消',
     onOk: () => {
-      const index = historyChatList.value.findIndex(_ => _.id === item.id);
+      const index = sessionList.value.findIndex(_ => _.id === item.id);
       if (index === -1) {
         return;
       }
-      historyChatList.value.splice(index, 1);
+      sessionList.value.splice(index, 1);
+      deleteSession(item.id);
+      // 删除对应的对话记录
+      deleteChatBySessionId(item.id);
+      // chatList.value = chatList.value.filter(_ => _.sessionId !== item.id);
     },
   });
 }
@@ -168,10 +175,11 @@ function handleDeleteChat(item) {
 watch(
   () => modelList.value,
   newVal => {
-    historyChatList.value = deepClone([...newVal]);
     if (newVal.length > 0 && originList.value.length === 0) {
       originList.value = [...modelList.value].map((item, index) => ({ ...item, index }));
-      historyChatList.value = sortList(modelList.value, originList.value);
+      sessionList.value = sortList(modelList.value, originList.value);
+    } else {
+      sessionList.value = deepClone([...newVal]);
     }
   },
   { deep: true }
@@ -181,7 +189,7 @@ watch(
   () => isSearchResult.value,
   newVal => {
     if (!newVal) {
-      historyChatList.value = sortList(modelList.value, originList.value);
+      sessionList.value = sortList(modelList.value, originList.value);
     }
   }
 );
@@ -193,6 +201,8 @@ watch(
   display: flex;
   flex-direction: column;
   .chat-history {
+    display: flex;
+    flex-direction: column;
     padding: 0 20px;
     overflow: auto;
     flex: 1;
@@ -212,6 +222,7 @@ watch(
     }
     .chat-list {
       padding-bottom: 12px;
+      flex: 1;
       .chat-item {
         height: 38px;
         display: flex;
@@ -225,7 +236,7 @@ watch(
         .chat-text {
           display: flex;
           font-size: 14px;
-          color: #111133b3;
+          color: #666;
           flex: 1;
           white-space: nowrap;
           overflow: hidden;
@@ -260,6 +271,10 @@ watch(
     }
     .empty-item {
       margin: 20px 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
   }
 }

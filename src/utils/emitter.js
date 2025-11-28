@@ -17,13 +17,9 @@ export const EventType = {
    */
   SUGGESTION: 'suggestion',
   /**
-   * 新对话
+   * 文本引用
    */
-  NEW_CHAT: 'newChat',
-  /**
-   * 临时对话
-   */
-  TEMP_CHAT: 'tempChat',
+  TEXT_REF: 'textRef',
 };
 
 const emitter = mitt();

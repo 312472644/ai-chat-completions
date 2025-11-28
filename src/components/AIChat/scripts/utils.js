@@ -1,17 +1,18 @@
 import { message } from 'ant-design-vue';
 
 /**
- * 滚动至DOM元素最底部
+ * 滚动至DOM元素指定位置
  * @param {HTMLElement} target 目标元素
  * @param {boolean} [isSmooth]  是否平滑滚动
+ * @param {number} [top]  滚动到的位置
  * @returns {void}
  */
-export function scrollToBottom(target, isSmooth = true) {
+export function scrollToBottom(target, isSmooth = true, top) {
   if (!target) {
     return;
   }
   target.scrollTo({
-    top: target.scrollHeight,
+    top: top === undefined || top === null ? target.scrollHeight : top,
     behavior: isSmooth ? 'smooth' : 'auto',
   });
 }

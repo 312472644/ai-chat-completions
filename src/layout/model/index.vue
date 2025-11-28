@@ -1,14 +1,20 @@
 <template>
   <div class="model">
-    <APopover overlay-class-name="model-popover" :open="visible" placement="bottomLeft" trigger="click" :arrow="false">
+    <APopover
+      v-model:open="visible"
+      overlay-class-name="model-popover"
+      placement="bottomLeft"
+      trigger="click"
+      :arrow="false"
+    >
       <template #content>
         <div class="model-list">
           <div
             v-for="item in modelList"
             :key="item.modelCode"
             class="model-item"
-            :class="{ active: item.modelCode === currentModel }"
-            @click="handleModelChange(item.modelCode)"
+            :class="{ active: item.modelCode === currentModel.modelCode }"
+            @click="handleModelChange(item)"
           >
             <div class="model-item-name">
               {{ item.modelName }}
@@ -24,7 +30,7 @@
             <span>临时对话</span>
           </div>
           <div class="right-icon">
-            <ASwitch v-model:checked="isTempChat" size="small" @change="handleTempChatChange" />
+            <ASwitch v-model:checked="isTempSession" size="small" @change="handleTempChatChange" />
           </div>
         </div>
       </template>
@@ -32,7 +38,7 @@
         <div style="font-size: 16px; padding: 0 12px">模型</div>
       </template>
       <div class="model-name" @click="visible = !visible">
-        <span>{{ modelName }}</span>
+        <span>{{ currentModel.modelName }}</span>
         <DownOutlined style="font-size: 12px; margin-left: 4px" />
       </div>
     </APopover>
@@ -42,38 +48,40 @@
 <script setup>
 import { DownOutlined } from '@ant-design/icons-vue';
 import { Popover as APopover, Switch as ASwitch } from 'ant-design-vue';
-import { computed, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { ModelList } from '@/mock/index.js';
+import { sessionStore } from '@/store';
 
-const currentModel = ref('qwen3-max');
-const isTempChat = ref(false);
-const visible = ref(false);
+const { isTempSession, setIsTempSession, setCurrentSessionId, currentModel, setCurrentModel } = sessionStore();
 
 // TODO 从接口获取模型列表
 const modelList = ref(ModelList);
+const visible = ref(false);
 
-const modelName = computed(() => {
-  const model = modelList.value.find(item => item.modelCode === currentModel.value);
-  return model?.modelName || 'Qwen3-Max';
-});
-
-function handleModelChange(modelCode) {
-  currentModel.value = modelCode;
+function handleModelChange(model) {
+  setCurrentModel({
+    modelCode: model.modelCode,
+    modelName: model.modelName,
+  });
   visible.value = false;
 }
 
 function handleTempChatChange(checked) {
-  console.log('🚀 ~ handleTempChatChange ~ checked:', checked);
-  isTempChat.value = checked;
   visible.value = false;
+  setIsTempSession(checked);
+  setCurrentSessionId(false);
 }
+
+onMounted(() => {
+  setCurrentModel({
+    modelCode: modelList.value[0].modelCode,
+    modelName: modelList.value[0].modelName,
+  });
+});
 </script>
 
 <style lang="scss">
-.model {
-}
-
 .model-popover {
   max-width: 500px;
   .ant-popover-inner {

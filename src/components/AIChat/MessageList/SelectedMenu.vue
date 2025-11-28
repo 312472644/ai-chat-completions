@@ -16,6 +16,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import emitter, { EventType } from '@/utils/emitter';
 import { copyText, debounce } from '@/utils/index';
 
 const props = defineProps({
@@ -25,7 +26,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(['quote-selected']);
+// const emits = defineEmits(['quote-selected']);
 
 const SelectedMenuRef = ref(null);
 const copySelectedText = ref(null);
@@ -98,7 +99,8 @@ function handleQuoteSelectedText() {
     return;
   }
   SelectedMenuRef.value.style.display = 'none';
-  emits('quote-selected', selectedText);
+  emitter.emit(EventType.TEXT_REF, selectedText);
+  // emits('quote-selected', selectedText);
 }
 
 function handleWindowClick(e) {
@@ -115,12 +117,13 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('selectionchange', handleSelectionChange);
   window.removeEventListener('click', handleWindowClick);
+  emitter.off(EventType.TEXT_REF);
 });
 </script>
 
 <style lang="scss" scoped>
 .selected-menu-container {
-  position: absolute;
+  position: fixed;
   background: #fff;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   padding: 6px;

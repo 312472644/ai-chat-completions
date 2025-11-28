@@ -27,25 +27,26 @@
 <script setup>
 import { Tooltip as ATooltip } from 'ant-design-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
-import { userStore } from '@/store/userStore';
+import { sessionStore, userStore } from '@/store';
 
 import Model from './model/index.vue';
 
 const { isSideBarCollapsed, toggleSideBarCollapsed } = userStore();
+const { newChat } = sessionStore();
 
 function handleToggleAside() {
   toggleSideBarCollapsed();
 }
 
 function handleNewChat() {
-  console.log('🚀 ~ handleNewChat:');
+  newChat();
 }
 </script>
 
 <style lang="scss">
 .top-bar {
   height: 52px;
-  border-bottom: 1px solid #eaeaed;
+  box-shadow: 1px 1px 2px #f1f1f1;
   padding: 0 12px;
   display: flex;
   align-items: center;

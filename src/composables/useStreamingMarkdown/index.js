@@ -1,5 +1,5 @@
 import { nextTick, ref, shallowRef, watch } from 'vue';
-import useMarked from '@/components/AICompletions/scripts/useMarked';
+import useMarked from '@/components/AIChat/scripts/useMarked';
 import { htmlToElement } from '@/utils/index';
 import { applyHtmlDiff, canSafelyPreview, isIncompleteStructure } from './utils';
 
@@ -134,6 +134,10 @@ export function useStreamingMarkdown(containerDOM) {
     () => containerDOM,
     async val => {
       await nextTick();
+      if (!containerDOM) {
+        console.warn('containerDOM is null');
+        return;
+      }
       if (val && !containerRef.value) {
         containerRef.value = val;
         // 初始化marked

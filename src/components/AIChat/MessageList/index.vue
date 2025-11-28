@@ -1,41 +1,48 @@
 <template>
   <div ref="MessageContentRef" class="message-container">
     <div class="chat-list-container">
-      <div v-if="chatMessage.messages.length" class="chat-list">
+      <div v-if="answerList.length" class="chat-list">
         <div
-          v-for="(item, index) in chatMessage.messages"
+          v-for="(item, index) in answerList"
           :id="item.id"
           :key="index"
           data-type="chat-item"
           class="chat-item"
           :class="{ delete: isDeleteMode, checked: item.checked }"
         >
-          <div v-if="item[Role.USER]" :id="item[Role.USER].id" class="question-item-box">
+          <!-- 用户侧 -->
+          <div v-if="item[0]" :id="item[0].id" class="question-item-box">
             <div v-if="isDeleteMode" class="question-meta">
               <ACheckbox v-model:checked="item.checked" />
             </div>
-            <div class="question-item">
-              {{ item[Role.USER].content }}
+            <div class="right-content">
+              <div v-if="item[0].refText" class="ref-text">
+                <FoldText :text="`引用：${item[0].refText}`" />
+              </div>
+              <div class="question-item">
+                {{ item[0].content }}
+              </div>
             </div>
           </div>
           <!-- 已经完成的对话 -->
-          <div v-if="item[Role.ASSISTANT]?.content" :id="item[Role.ASSISTANT].id" class="answer-item-box">
+          <div v-if="item[1]?.content" :id="item[1]?.id" class="answer-item-box">
             <div class="answer-meta">
               <div class="model-code">
-                {{ item[Role.ASSISTANT].modelCode }}
+                {{ item[1].modelName }}
               </div>
               <div class="create-time">
-                {{ item[Role.ASSISTANT].createTime }}
+                {{ item[1].createTime }}
               </div>
             </div>
             <div class="answer-content">
               <!-- 历史记录 -->
-              <div class="markdown-output" v-html="item[Role.ASSISTANT].content" />
+              <div class="markdown-output" v-html="item[1].renderHTML" />
             </div>
             <AnswerTool
               v-if="!isDeleteMode"
-              :item="item"
-              :show-refresh="index === chatMessage.messages.length - 1"
+              :user-item="item[0]"
+              :item="item[1]"
+              :show-refresh="index === answerList.length - 1"
               @delete="handleDelete"
             />
           </div>
@@ -45,10 +52,7 @@
       <div class="current-render answer-item-box" :class="{ stdin: loading }">
         <div class="answer-meta">
           <div class="model-code">
-            {{ chatMessage.currentMessage.modelCode }}
-          </div>
-          <div class="create-time">
-            {{ chatMessage.currentMessage.createTime }}
+            {{ currentModel.modelName }}
           </div>
         </div>
         <div class="answer-content">
@@ -63,45 +67,44 @@
         </div>
       </div>
       <!-- AI建议列表 -->
-      <SuggestionList
-        v-if="chatMessage.suggestionList.length && !isDeleteMode"
-        style="margin-top: 10px"
-        :list="chatMessage.suggestionList"
-      />
+      <SuggestionList v-if="suggestList.length && !isDeleteMode" style="margin-top: 10px" :list="suggestList" />
     </div>
   </div>
   <!-- 删除按钮 -->
   <div v-if="isDeleteMode" class="delete-container">
     <AButton class="delete-item" @click="handleDelete"> 取消 </AButton>
-    <AButton class="delete-item" @click="handleDeleteAll"> 删除全部 </AButton>
+    <AButton class="delete-item" danger @click="handleDeleteAll"> 删除全部 </AButton>
     <AButton class="delete-item" type="primary" @click="handleDeleteSelected"> 删除选中 </AButton>
   </div>
   <!-- 选中文字后菜单 -->
-  <SelectedMenu :message-content-ref="MessageContentRef" @quote-selected="text => $emit('quote-selected', text)" />
+  <SelectedMenu :message-content-ref="MessageContentRef" />
 </template>
 
 <script setup>
 import { Button as AButton, Checkbox as ACheckbox, message, Modal } from 'ant-design-vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import FoldText from '@/components/FoldText/index.vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 
-import { chatStore } from '@/store/chatStore.js';
-import emitter, { EventType } from '@/utils/emitter.js';
-import { Role } from '../scripts/config.js';
+import { chatStore, sessionStore } from '@/store/index.js';
 import { scrollToBottom as toBottom } from '../scripts/utils.js';
 
 import AnswerTool from './AnswerTool.vue';
 import SelectedMenu from './SelectedMenu.vue';
 import SuggestionList from './SuggestionList.vue';
 
-const props = defineProps({
-  chatMessage: {
-    type: Object,
-    default: () => {},
-  },
-});
-
-const { loading, isFirstContentVisible, setRenderDomRef } = chatStore();
+const {
+  loading,
+  isFirstContentVisible,
+  setRenderDomRef,
+  chatList,
+  suggestList,
+  deleteChatChildList,
+  isDeleteMode,
+  setIsDeleteMode,
+  deleteAllChatChildList,
+} = chatStore();
+const { currentSessionId, currentModel, setIsTempSession } = sessionStore();
 
 // 当前组件实例
 const MessageContentRef = ref(null);
@@ -111,9 +114,11 @@ const RenderRef = ref(null);
 const showToBottomBtn = ref(false);
 // 是否自动滚动
 const isAutoScroll = ref(true);
-// 是否删除模式
-const isDeleteMode = ref(false);
 const interval = ref(false);
+// 回答列表
+const answerList = ref([]);
+// 当前会话
+const currentSessionChat = ref(null);
 
 const showScrollButton = computed(() => {
   if (loading.value) {
@@ -131,16 +136,15 @@ function handleDeleteAll() {
     cancelText: '取消',
     okText: '确认',
     onOk: () => {
-      // eslint-disable-next-line vue/no-mutating-props
-      props.chatMessage.messages = [];
-      handleDelete();
+      deleteAllChatChildList(currentSessionId.value);
     },
   });
 }
 
 // TODO 接口调用删除选中
 function handleDeleteSelected() {
-  const checkedItems = props.chatMessage.messages.filter(item => item.checked);
+  const checkedItems = answerList.value.filter(item => item.checked);
+
   if (!checkedItems.length) {
     message.warn('请选择要删除的项');
     return;
@@ -152,16 +156,15 @@ function handleDeleteSelected() {
     cancelText: '取消',
     okText: '确认',
     onOk: () => {
-      // eslint-disable-next-line vue/no-mutating-props
-      props.chatMessage.messages = props.chatMessage.messages.filter(item => !item.checked);
-      handleDelete();
+      const msgIds = checkedItems.map(item => item.map(item => item.msgId)).flat();
+      deleteChatChildList(currentSessionId.value, msgIds, answerList);
+      message.success('删除成功');
     },
   });
 }
 
 function handleDelete() {
-  isDeleteMode.value = !isDeleteMode.value;
-  emitter.emit(EventType.DELETE, isDeleteMode.value);
+  setIsDeleteMode(!isDeleteMode.value);
   nextTick(() => {
     toBottom(MessageContentRef.value, false);
   });
@@ -209,6 +212,33 @@ function autoScrollToBottom() {
   }, 500);
 }
 
+// TODO 接口调用查询
+function handleAnswerList(val) {
+  answerList.value = [];
+  // 通过会话ID过滤回答列表
+  const item = chatList.value.find(item => item.sessionId === val);
+  if (!item) {
+    answerList.value = [];
+    return;
+  }
+  currentSessionChat.value = { ...item };
+  answerList.value = item.list || [];
+}
+
+// 处理当前会话
+function handleCurrChat(val) {
+  setIsTempSession(false);
+  scrollToBottom(false);
+  handleAnswerList(val);
+}
+
+function handleNewChat() {
+  // 清空回答列表
+  answerList.value = [];
+  currentSessionChat.value = null;
+  toBottom(MessageContentRef.value, false, 0);
+}
+
 async function init() {
   await nextTick();
   setRenderDomRef(RenderRef.value);
@@ -219,7 +249,6 @@ async function init() {
 onMounted(() => init());
 
 onBeforeUnmount(() => {
-  emitter.off(EventType.DELETE, handleDelete);
   MessageContentRef.value.removeEventListener('scroll', handleScroll);
   window.removeEventListener('wheel', handleWheel);
   clearInterval(interval.value);
@@ -240,6 +269,19 @@ watch(
     }
   }
 );
+
+watch(
+  () => currentSessionId.value,
+  val => {
+    setIsDeleteMode(false);
+    if (val) {
+      handleCurrChat(val);
+    } else {
+      handleNewChat();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss">
@@ -257,6 +299,7 @@ watch(
   .chat-list {
     padding: 0;
     .chat-item {
+      margin: 20px 0;
       &.delete {
         background-color: #fafafb;
         padding: 16px;
@@ -269,11 +312,27 @@ watch(
           0px -1px 1px #ff4d4f,
           -1px 0px 1px #ff4d4f;
       }
+      &:last-of-type {
+        margin-bottom: 0;
+      }
     }
     .question-item-box {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       justify-content: space-between;
+      gap: 40px;
+      .right-content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        flex: 1;
+        .ref-text {
+          color: #999;
+          font-size: 14px;
+          margin-bottom: 8px;
+          line-height: 1.5;
+        }
+      }
       .question-item {
         margin-left: auto;
         background-color: #f1f3f5;
