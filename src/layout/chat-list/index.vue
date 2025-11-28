@@ -1,9 +1,9 @@
 <template>
   <div class="chat-list-box">
     <div class="new-chat">
-      <Search v-model:show-search="showSearch" v-model="modelList" v-model:is-search-result="isSearchResult" />
+      <Search v-model:show-search="showSearch" v-model="sourceList" v-model:is-search-result="isSearchResult" />
     </div>
-    <div class="chat-history">
+    <div ref="ChatHistoryRef" class="chat-history">
       <div class="chat-title">
         <span class="title-text">{{ stickyText }}</span>
         <span>
@@ -51,8 +51,8 @@
                     </view>
                   </AMenuItem>
                   <ASubMenu key="session" title="导出会话" :icon="h(VerticalAlignBottomOutlined)">
-                    <AMenuItem>PDF</AMenuItem>
-                    <AMenuItem>Json</AMenuItem>
+                    <!-- <AMenuItem>PDF</AMenuItem> -->
+                    <AMenuItem @click="handleExportJson(item)">Json</AMenuItem>
                   </ASubMenu>
                   <div class="ant-dropdown-menu-item-separator" />
                   <AMenuItem>
@@ -90,12 +90,14 @@ import {
   SubMenu as ASubMenu,
   Tooltip as ATooltip,
   Empty,
+  message,
   Modal,
 } from 'ant-design-vue';
-import { h, ref, shallowRef, watch } from 'vue';
+import { h, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { chatStore, sessionStore } from '@/store/index';
 import { deepClone } from '@/utils';
+import { downloadJsonFile, formatTime, throttle } from '@/utils/index';
 import Search from './search.vue';
 
 const showSearch = defineModel('isSearchVisible', {
@@ -104,9 +106,10 @@ const showSearch = defineModel('isSearchVisible', {
 });
 
 const { currentSessionId, setCurrentSessionId, deleteSession, updateSessionList } = sessionStore();
-const { deleteChatBySessionId } = chatStore();
+const { deleteChatBySessionId, getChatListBySessionId } = chatStore();
 
-const modelList = ref([]);
+// 数据来源
+const sourceList = ref([]);
 // 是否搜索结果（搜索结果不展示菜单）
 const isSearchResult = ref(false);
 // 历史对话列表，用于展示
@@ -115,6 +118,9 @@ const sessionList = ref([]);
 const originList = shallowRef([]);
 // 置顶对话的文本
 const stickyText = ref('置顶对话');
+const ChatHistoryRef = ref(null);
+
+const handleScrollThrottle = throttle(handleScroll, 300);
 
 /**
  * 置顶对话后，需要重新排序
@@ -158,11 +164,6 @@ function handleDeleteChat(item) {
     okText: '确认',
     cancelText: '取消',
     onOk: () => {
-      const index = sessionList.value.findIndex(_ => _.id === item.id);
-      if (index === -1) {
-        return;
-      }
-      sessionList.value.splice(index, 1);
       deleteSession(item.id);
       // 删除对应的对话记录
       deleteChatBySessionId(item.id);
@@ -170,8 +171,56 @@ function handleDeleteChat(item) {
   });
 }
 
+function handleExportJson(item) {
+  const chatList = getChatListBySessionId(item.id);
+  const dataList = chatList.map(item => {
+    return {
+      user: item[0].content,
+      assistant: item[1].content,
+    };
+  });
+  message.loading({
+    content: '导出中...',
+    duration: 0,
+  });
+  downloadJsonFile(dataList, item.summary)
+    .then(() => {
+      setTimeout(() => {
+        message.success('导出成功');
+      }, 1000);
+    })
+    .catch(() => {
+      message.error('导出失败');
+    })
+    .finally(() => {
+      setTimeout(() => {
+        message.destroy();
+      }, 500);
+    });
+}
+
+function handleScroll() {
+  const { scrollTop } = ChatHistoryRef.value || {};
+  if (scrollTop === 0) {
+    stickyText.value = '置顶对话';
+    return;
+  }
+  // 计算当前应该显示的元素索引。默认高度为38px
+  const index = Math.min(...[Math.ceil(scrollTop / 38), sessionList.value.length - 1]);
+  const item = sessionList.value[index];
+  stickyText.value = formatTime(item.createTime, 'yyyy年MM月dd HH:mm:ss');
+}
+
+onMounted(() => {
+  ChatHistoryRef.value?.addEventListener('scroll', handleScrollThrottle);
+});
+
+onUnmounted(() => {
+  ChatHistoryRef.value?.removeEventListener('scroll', handleScrollThrottle);
+});
+
 watch(
-  () => modelList.value,
+  () => sourceList.value,
   newVal => {
     if (newVal.length > 0 && originList.value.length === 0) {
       originList.value = newVal.map((item, index) => ({ ...item, index }));
@@ -185,7 +234,7 @@ watch(
   () => isSearchResult.value,
   newVal => {
     if (!newVal) {
-      sessionList.value = sortList(modelList.value, originList.value);
+      sessionList.value = sortList(sourceList.value, originList.value);
     }
   }
 );

@@ -34,7 +34,7 @@ export function getUniqueid() {
  * @param {number} timestamp 时间戳（毫秒）
  * @returns {string} 格式化后的日期时间字符串（例如："2023-08-15 14:30:00"）
  */
-export function formatTime(timestamp) {
+export function formatTime(timestamp, format = 'yyyy-MM-dd HH:mm:ss') {
   const date = new Date(timestamp);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -44,7 +44,13 @@ export function formatTime(timestamp) {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   const seconds = String(date.getSeconds()).padStart(2, '0');
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  return format
+    .replace('yyyy', year)
+    .replace('MM', month)
+    .replace('dd', day)
+    .replace('HH', hours)
+    .replace('mm', minutes)
+    .replace('ss', seconds);
 }
 
 /**
@@ -178,4 +184,27 @@ export function isNotEmptyObject(val) {
     return false;
   }
   return Object.keys(val).length > 0;
+}
+/**
+ * 下载JSON文件
+ * @param {object} data 要下载的JSON数据
+ * @param {string} fileName 下载的文件名（可选，默认：'file.json'）
+ */
+export function downloadJsonFile(data, fileName = 'file.json') {
+  return new Promise((resolve, reject) => {
+    try {
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { contentType: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.includes('.json') ? fileName : `${fileName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      resolve(url);
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

@@ -142,6 +142,18 @@ export const chatStore = createGlobalState(() => {
     chat.list.pop();
     persist();
   }
+  /**
+   * 根据会话ID获取对话列表
+   * @param {string} sessionId 会话ID
+   * @returns {Array} 对话列表
+   */
+  function getChatListBySessionId(sessionId) {
+    if (!sessionId) {
+      return [];
+    }
+    const chat = chatList.value.find(item => item.sessionId === sessionId);
+    return chat?.list || [];
+  }
 
   /**
    * 清空渲染的HTML
@@ -171,5 +183,6 @@ export const chatStore = createGlobalState(() => {
     deleteAllChatChildList,
     deleteChatBySessionId,
     deleteLastChatChildList,
+    getChatListBySessionId,
   };
 });
