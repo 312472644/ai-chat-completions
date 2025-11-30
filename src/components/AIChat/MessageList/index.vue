@@ -414,6 +414,7 @@ watch(
   .stop-response {
     font-size: 14px;
     line-height: 25px;
+    margin: 6px 0;
   }
 
   @keyframes rotate {

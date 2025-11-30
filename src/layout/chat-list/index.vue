@@ -11,7 +11,11 @@
             <template #title>
               <span>对话管理</span>
             </template>
-            <SvgIcon name="controls" style="font-size: 15px; color: #333; cursor: pointer" />
+            <SvgIcon
+              name="controls"
+              style="font-size: 15px; color: #333; cursor: pointer"
+              @click="showChatManagement = !showChatManagement"
+            />
           </ATooltip>
         </span>
       </div>
@@ -71,6 +75,8 @@
         <AEmpty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无对话记录" />
       </div>
     </div>
+    <!-- 对话管理 -->
+    <ChatManagement v-model:visible="showChatManagement" @delete-session="handleDeleteSession" />
   </div>
 </template>
 
@@ -98,6 +104,7 @@ import SvgIcon from '@/components/SvgIcon/index.vue';
 import { chatStore, sessionStore } from '@/store/index';
 import { deepClone } from '@/utils';
 import { downloadJsonFile, formatTime, throttle } from '@/utils/index';
+import ChatManagement from './chat-management.vue';
 import Search from './search.vue';
 
 const showSearch = defineModel('isSearchVisible', {
@@ -119,6 +126,7 @@ const originList = shallowRef([]);
 // 置顶对话的文本
 const stickyText = ref('置顶对话');
 const ChatHistoryRef = ref(null);
+const showChatManagement = ref(false);
 
 const handleScrollThrottle = throttle(handleScroll, 300);
 
@@ -187,7 +195,7 @@ function handleExportJson(item) {
     .then(() => {
       setTimeout(() => {
         message.success('导出成功');
-      }, 1000);
+      }, 550);
     })
     .catch(() => {
       message.error('导出失败');
@@ -209,6 +217,15 @@ function handleScroll() {
   const index = Math.min(...[Math.ceil(scrollTop / 38), sessionList.value.length - 1]);
   const item = sessionList.value[index];
   stickyText.value = formatTime(item.createTime, 'yyyy年MM月dd HH:mm:ss');
+}
+
+function handleDeleteSession(ids) {
+  // if (item?.id === currentSessionId.value || item === null) {
+  //   setCurrentSessionId('');
+  // }
+  if (ids.length === 0 || ids.includes(currentSessionId.value)) {
+    setCurrentSessionId('');
+  }
 }
 
 onMounted(() => {

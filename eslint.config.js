@@ -15,6 +15,7 @@ export default antfu({
     ],
     'vue/custom-event-name-casing': ['off', 'kebab-case'],
     'vue/singleline-html-element-content-newline': 'off',
+    'vue/html-self-closing': 'off',
     'style/operator-linebreak': 'off',
     'style/arrow-parens': 'off',
     'style/comma-dangle': 'off',
