@@ -12,11 +12,18 @@
               <span>对话管理</span>
             </template>
             <SvgIcon
+              v-if="isMobile"
               name="controls"
               style="font-size: 15px; color: #333; cursor: pointer"
               @click="showChatManagement = !showChatManagement"
             />
           </ATooltip>
+          <SvgIcon
+            v-if="!isMobile"
+            name="controls"
+            style="font-size: 15px; color: #333; cursor: pointer"
+            @click="showChatManagement = !showChatManagement"
+          />
         </span>
       </div>
       <div v-if="sessionList.length" class="chat-list">
@@ -113,7 +120,7 @@ const showSearch = defineModel('isSearchVisible', {
 });
 
 const { currentSessionId, setCurrentSessionId, deleteSession, updateSessionList } = sessionStore();
-const { deleteChatBySessionId, getChatListBySessionId } = chatStore();
+const { isMobile, deleteChatBySessionId, getChatListBySessionId } = chatStore();
 
 // 数据来源
 const sourceList = ref([]);
@@ -220,9 +227,6 @@ function handleScroll() {
 }
 
 function handleDeleteSession(ids) {
-  // if (item?.id === currentSessionId.value || item === null) {
-  //   setCurrentSessionId('');
-  // }
   if (ids.length === 0 || ids.includes(currentSessionId.value)) {
     setCurrentSessionId('');
   }

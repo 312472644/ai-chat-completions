@@ -8,13 +8,14 @@
   >
     <template #title>
       <div class="chat-management-title">
-        <span class="title-text">
+        <span v-if="!isMobile" class="title-text">
           <span>管理对话记录</span>
           <span> · </span>
           <span>共{{ tableData.length }}条</span>
         </span>
+        <span v-else>批量管理</span>
         <div class="right">
-          <div>
+          <div v-if="!isMobile">
             <AInput v-model:value="keyWord" placeholder="搜索历史对话记录" size="large" @change="handleSearch">
               <template #prefix><SearchOutlined style="color: #999" /></template>
             </AInput>
@@ -23,8 +24,14 @@
         </div>
       </div>
     </template>
+    <div v-if="isMobile">
+      <AInput v-model:value="keyWord" placeholder="搜索历史对话记录" @change="handleSearch">
+        <template #prefix><SearchOutlined style="color: #999" /></template>
+      </AInput>
+    </div>
     <div class="chat-management-content">
       <ATable
+        v-if="!isMobile && tableData.length > 0"
         :columns="columns"
         :data-source="tableData"
         row-key="id"
@@ -39,6 +46,22 @@
           </div>
         </template>
       </ATable>
+      <div
+        v-if="tableData.length === 0"
+        style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px 0"
+      >
+        <AEmpty description="暂无对话记录" />
+      </div>
+      <div class="mobile-list">
+        <div v-for="item in tableData" :key="item.id" class="mobile-item">
+          <div class="mobile-item-left">
+            <span>{{ item.summary }}</span>
+          </div>
+          <div class="mobile-item-right">
+            <DeleteOutlined style="cursor: pointer; font-size: 16px" @click="handleDeleteChat(item)" />
+          </div>
+        </div>
+      </div>
     </div>
     <div class="chat-management-footer">
       <div style="display: flex; align-items: center; gap: 6px">
@@ -53,7 +76,14 @@
 
 <script setup>
 import { CloseOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons-vue';
-import { Button as AButton, Input as AInput, Modal as AModal, Table as ATable, Modal } from 'ant-design-vue';
+import {
+  Button as AButton,
+  Empty as AEmpty,
+  Input as AInput,
+  Modal as AModal,
+  Table as ATable,
+  Modal,
+} from 'ant-design-vue';
 import { computed, defineModel, ref, watch } from 'vue';
 import { sessionStore, userStore } from '@/store';
 
@@ -184,6 +214,14 @@ watch(
       align-items: center;
       gap: 20px;
       align-items: center;
+    }
+  }
+  .mobile-list {
+    .mobile-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 35px;
     }
   }
   .chat-management-content {
