@@ -63,6 +63,7 @@ const { currentSessionId, isTempSession } = sessionStore();
         display: flex;
         align-items: center;
         gap: 8px;
+        padding: 0 12px;
       }
       .guide-text {
         display: flex;

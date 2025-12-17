@@ -134,11 +134,11 @@ export function useStreamingMarkdown(containerDOM) {
     () => containerDOM,
     async val => {
       await nextTick();
-      if (!containerDOM) {
+      if (!val) {
         console.warn('containerDOM is null');
         return;
       }
-      if (val && !containerRef.value) {
+      if (!containerRef.value) {
         containerRef.value = val;
         // 初始化marked
         initMarked(document.querySelector('.message-container'));
