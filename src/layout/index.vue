@@ -20,13 +20,18 @@ import { userStore } from '@/store/userStore';
 import AsideBar from './aside-bar.vue';
 import TopBar from './top-bar.vue';
 
-const { isSideBarCollapsed, toggleSideBarCollapsed, toggleMobile } = userStore();
+const { isSideBarCollapsed, openSideBar, closeSideBar, toggleMobile } = userStore();
 
 const isMobileQuery = useMediaQuery('(max-width: 768px)');
 
 watch(
   () => isMobileQuery.value,
   newValue => {
+    if (newValue) {
+      closeSideBar();
+    } else {
+      openSideBar();
+    }
     toggleMobile(newValue);
   },
   { immediate: true }

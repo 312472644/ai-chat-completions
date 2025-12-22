@@ -19,8 +19,18 @@ export const userStore = createGlobalState(() => {
     isSideBarCollapsed.value = !isSideBarCollapsed.value;
   };
 
+  const openSideBar = () => {
+    isSideBarCollapsed.value = false;
+  };
+
+  const closeSideBar = () => {
+    isSideBarCollapsed.value = true;
+  };
+
   return {
     isMobile,
+    openSideBar,
+    closeSideBar,
     isSideBarCollapsed,
     toggleMobile: updateMobile,
     toggleSideBarCollapsed,

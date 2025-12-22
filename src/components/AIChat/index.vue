@@ -24,7 +24,7 @@
 <script setup>
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { sessionStore } from '@/store';
-import ChatView from './ChatView.vue';
+import ChatView from './ChatView/index.vue';
 import MessageList from './MessageList/index.vue';
 
 const { currentSessionId, isTempSession } = sessionStore();
