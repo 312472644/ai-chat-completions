@@ -2,8 +2,8 @@
   <div v-if="!isDeleteMode" class="input-container">
     <div class="ai-input-container">
       <div class="input-box">
+        <!-- 引用或附件 -->
         <div class="attachment-container">
-          <!-- 引用 -->
           <div v-if="quoteText" class="quote-container">
             <AAlert closable @close="quoteText = ''">
               <template #message>
@@ -14,48 +14,31 @@
               </template>
             </AAlert>
           </div>
-          <!-- 附件 -->
-          <Attachment v-if="fileList.length > 0" v-model="fileList" />
+          <FileList v-if="fileList.length > 0" v-model="fileList" />
         </div>
         <!-- 输入区域 -->
         <div class="chat-textarea">
-          <textarea
+          <ChatInput
             v-model="question"
-            class="textarea"
-            :rows="4"
-            :placeholder="isTempSession ? '临时对话不会被记录，退出将会自动清除' : '想和AI聊一聊什么？🧐'"
-            @keydown.enter.exact.prevent="handleChat"
-            @paste="handlePaste"
+            v-model:file-list="fileList"
+            :is-temp-session="isTempSession"
+            @chat="handleChat"
           />
         </div>
         <!-- 操作按钮 -->
         <div class="function-area">
           <div class="left" />
           <div class="right">
-            <div>
-              <ADropdown placement="top">
-                <PaperClipOutlined style="font-size: 20px" />
-                <template #overlay>
-                  <AMenu>
-                    <AMenuItem>
-                      <UploadFile
-                        v-model="fileList"
-                        accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.ppt,.pptx"
-                        label="上传文档"
-                      />
-                    </AMenuItem>
-                    <AMenuItem>
-                      <UploadFile v-model="fileList" accept="image/*" label="上传图片" />
-                    </AMenuItem>
-                  </AMenu>
-                </template>
-              </ADropdown>
+            <div class="area-item">
+              <AttachmentUpload v-model="fileList" />
             </div>
-            <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
-              <SvgIcon name="arrow_upward" size="20px" class="arrow" />
-            </div>
-            <div v-else class="operation-btn-stop" @click="handleStop">
-              <SvgIcon name="paused" size="32px" class="pause" />
+            <div class="area-item">
+              <div v-if="!loading" class="operation-btn" :class="{ disabled: !question }" @click="handleChat">
+                <SvgIcon name="arrow_upward" size="20px" class="arrow" />
+              </div>
+              <div v-else class="operation-btn-stop" @click="handleStop">
+                <SvgIcon name="paused" size="32px" class="pause" />
+              </div>
             </div>
           </div>
         </div>
@@ -65,23 +48,16 @@
 </template>
 
 <script setup>
-import { PaperClipOutlined } from '@ant-design/icons-vue';
-import {
-  Alert as AAlert,
-  Dropdown as ADropdown,
-  Menu as AMenu,
-  MenuItem as AMenuItem,
-  message,
-  Modal,
-} from 'ant-design-vue';
+import { Alert as AAlert, message } from 'ant-design-vue';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { useStreamingMarkdown } from '@/composables/useStreamingMarkdown/index.js';
 import { MESSAGE_STATUS, ROLE } from '@/constant/enum.js';
 import { chatStore, sessionStore } from '@/store/index';
 import emitter, { EventType } from '@/utils/emitter.js';
-import Attachment from './Attachment.vue';
-import UploadFile from './UploadFile.vue';
+import AttachmentUpload from './AttachmentUpload.vue';
+import ChatInput from './ChatInput.vue';
+import FileList from './FileList.vue';
 
 const {
   loading,
@@ -110,74 +86,6 @@ const streamMarkdown = ref({
   cancel: () => {},
   release: () => {},
 });
-
-function coverFile() {
-  return new Promise((res, rej) => {
-    Modal.confirm({
-      title: '确认覆盖',
-      content: '确认覆盖已存在文件',
-      okText: '确认',
-      cancelText: '取消',
-      onOk: () => {
-        fileList.value = [];
-        res(true);
-      },
-      onCancel: () => {
-        rej(new Error('用户取消覆盖'));
-      },
-    });
-  });
-}
-
-function readFileAsDataURL(file) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      res(reader.result);
-    };
-    reader.onerror = () => {
-      rej(new Error('读取文件失败'));
-    };
-  });
-}
-
-function handlePaste(e) {
-  e.preventDefault();
-  const items = e.clipboardData.items;
-  if (items.length === 0) {
-    return;
-  }
-  for (const item of items) {
-    const isImages = item.type.includes('image');
-    if (!isImages) {
-      continue;
-    }
-    const isExistFile = fileList.value.some(item => item.type === 'file');
-    const blob = item.getAsFile();
-    if (isExistFile) {
-      coverFile().then(() => {
-        readFileAsDataURL(blob).then(url => {
-          fileList.value.push({
-            id: crypto.randomUUID(),
-            name: blob.name,
-            url,
-            type: 'image',
-          });
-        });
-      });
-      continue;
-    }
-    readFileAsDataURL(blob).then(url => {
-      fileList.value.push({
-        id: crypto.randomUUID(),
-        name: blob.name,
-        url,
-        type: 'image',
-      });
-    });
-  }
-}
 
 function getRenderContent() {
   // 获取当前正在渲染的markdown内容

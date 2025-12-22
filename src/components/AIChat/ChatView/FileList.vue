@@ -151,8 +151,6 @@ function handleClick(item) {
       max-width: 205px;
       flex-direction: row;
       gap: 8px;
-      .file-icon {
-      }
       .file-content {
         display: flex;
         flex-direction: column;
